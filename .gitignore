@@ -1,0 +1,32 @@
+# protocol gateway sandbox
+
+# rust/cargo
+target/
+Cargo.lock
+*.wasm
+
+# node.js
+node_modules/
+package-lock.json
+*.log
+
+# ide
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# os
+.DS_Store
+Thumbs.db
+
+# build artifacts
+dist/
+out/
+*.component.wasm
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/

@@ -1,0 +1,28 @@
+# guest/Cargo.toml
+# rust wasm component configuration for the protocol gateway parser.
+# uses cargo-component to build a wasi 0.2 compliant component.
+
+[package]
+name = "protocol-gateway-guest"
+version = "0.1.0"
+edition = "2021"
+description = "WASM-sandboxed Modbus TCP parser for safe legacy protocol translation"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+# wit-bindgen generates rust bindings from the wit interface definitions
+wit-bindgen = "0.36"
+
+# nom provides fuzz-proof binary parsing - never panics on malformed input
+nom = "7"
+
+# serde for json serialization of mqtt payloads
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[package.metadata.component]
+package = "gateway:protocols"
+
+[package.metadata.component.dependencies]

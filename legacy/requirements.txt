@@ -1,0 +1,7 @@
+# legacy/requirements.txt
+# dependencies for the legacy python gateway (minimal)
+# this represents a "traditional" approach to protocol parsing
+#
+# note: we intentionally DON'T use pymodbus here because
+# the point is to show how raw struct.unpack is dangerous.
+# pymodbus has proper bounds checking, which defeats the demo.

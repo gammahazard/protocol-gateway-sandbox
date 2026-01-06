@@ -1,0 +1,62 @@
+// wit/world.wit
+// defines the wasi 0.2 component model interfaces for the protocol gateway.
+// the guest component imports data sources (modbus, mqtt) and exports
+// parsing/metrics functions. this is the contract between host and guest.
+
+package gateway:protocols;
+
+// modbus data source - host provides raw modbus tcp frames
+// the guest calls receive-frame to get the next frame to parse
+interface modbus-source {
+    // represents an error from the modbus layer
+    record error-code {
+        code: u32,
+        message: string,
+    }
+    
+    // receive a modbus tcp frame (mbap header + pdu)
+    // returns up to 260 bytes (max modbus tcp message size)
+    // the host controls what frames are available (real or mock)
+    receive-frame: func() -> result<list<u8>, error-code>;
+}
+
+// mqtt data sink - host accepts transformed telemetry
+// the guest calls publish after parsing modbus data into json
+interface mqtt-sink {
+    // represents an error from the mqtt layer
+    record error-code {
+        code: u32,
+        message: string,
+    }
+    
+    // publish json payload to topic
+    // qos: 0 = at most once, 1 = at least once, 2 = exactly once
+    publish: func(topic: string, payload: string, qos: u8) -> result<_, error-code>;
+}
+
+// metrics export for dashboard visibility
+// the host polls get-stats to display live gateway performance
+interface metrics {
+    // snapshot of gateway performance counters
+    record gateway-stats {
+        frames-processed: u64,
+        frames-invalid: u64,
+        bytes-in: u64,
+        bytes-out: u64,
+        last-error: option<string>,
+    }
+    
+    // get current stats snapshot
+    get-stats: func() -> gateway-stats;
+}
+
+// the protocol gateway world - defines what the component imports and exports
+world protocol-gateway {
+    // imports: capabilities the guest needs from the host
+    import modbus-source;
+    import mqtt-sink;
+    
+    // exports: functions the host can call on the guest
+    export metrics;
+    export run: func();
+}
