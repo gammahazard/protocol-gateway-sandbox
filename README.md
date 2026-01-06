@@ -2,6 +2,7 @@
   <img src="https://img.shields.io/badge/WASI-0.2%20Preview%202-blueviolet?style=for-the-badge&logo=webassembly" alt="WASI 0.2"/>
   <img src="https://img.shields.io/badge/Rust-1.75+-orange?style=for-the-badge&logo=rust" alt="Rust"/>
   <img src="https://img.shields.io/badge/Modbus-TCP-blue?style=for-the-badge" alt="Modbus TCP"/>
+  <img src="https://img.shields.io/badge/Arch-Cross--Platform_(ARM64%2Fx64)-lightgrey?style=for-the-badge&logo=cpu" alt="Cross Platform"/>
 </p>
 
 <h1 align="center">🔒 Protocol Gateway Sandbox</h1>
@@ -63,6 +64,15 @@ Per IEC 62443 attack surface minimization, we implement only:
 
 All other function codes are **explicitly rejected**. This is intentional.
 
+### Attack Vectors Tested
+
+| Attack | Description |
+|--------|-------------|
+| **Buffer Overflow** | "Length Lie" - header claims more bytes than sent |
+| **Truncated Header** | Incomplete MBAP header (< 7 bytes) |
+| **Illegal Function** | Unsupported codes like `0xFF` |
+| **Random Garbage** | Non-Modbus binary noise |
+
 ## 📁 Project Structure
 
 ```
@@ -112,6 +122,15 @@ cd dashboard && trunk serve
 
 ## 🚀 Quick Start
 
+### Prerequisites
+
+```bash
+cargo install cargo-component
+npm install -g @bytecodealliance/jco
+```
+
+### Build & Run
+
 ```bash
 # Build the WASM component
 cd guest && cargo component build --release
@@ -127,6 +146,8 @@ npm test
 ```
 
 ## 🧪 The "Villain" Comparison
+
+See [`legacy/vulnerable_gateway.py`](legacy/vulnerable_gateway.py) - a realistic Python gateway using `struct.unpack` without bounds checking.
 
 Run both side-by-side to see the difference:
 
