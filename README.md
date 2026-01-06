@@ -123,6 +123,7 @@ The dashboard shows **two live terminals side-by-side** with **real WASM measure
 |--------|--------|
 | WASM compile time | ✅ Real `WebAssembly.compile()` |
 | WASM instantiate time | ✅ Real `WebAssembly.instantiate()` |
+| WASM rebuild time | ✅ Real (re-instantiate during fault recovery) |
 | WASM memory | ✅ Real measurement |
 | Python spawn time | 🔶 Simulated (~500ms based on benchmarks) |
 
