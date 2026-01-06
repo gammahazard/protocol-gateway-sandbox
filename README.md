@@ -102,8 +102,8 @@ protocol-gateway-sandbox/
 │   ├── src/lib.rs          # Side-by-side Python vs WASM terminals
 │   └── styles.css          # Security console dark theme
 └── docs/
-    ├── ARCHITECTURE.md     # System design and rationale
-    └── SECURITY.md         # Security analysis and IEC 62443
+    ├── [ARCHITECTURE.md](docs/ARCHITECTURE.md)     # System design and rationale
+    └── [SECURITY.md](docs/SECURITY.md)             # Security analysis and IEC 62443
 ```
 
 ## 🖥️ Dashboard Demo
@@ -184,6 +184,11 @@ This project is the evolution of [Vanguard ICS Guardian](https://github.com/gamm
 | **Protocol Gateway Sandbox** | "I solved legacy protocol translation safely" | Binary parsing, fuzzing, crash containment |
 
 Together they show: **Security depth + Engineering breadth**
+
+## 📚 Documentation
+
+- [**Architecture Deep Dive**](docs/ARCHITECTURE.md): Why we use the "Compile-Once, Instantiate-Many" pattern for <10ms recovery.
+- [**Security Analysis**](docs/SECURITY.md): Detailed breakdown of the attack surface, IEC 62443 alignment, and fuzzing methodology.
 
 ## 📜 License
 
