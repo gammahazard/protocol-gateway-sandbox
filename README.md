@@ -89,7 +89,7 @@ protocol-gateway-sandbox/
 │       │   └── payload.rs  # JSON serialization
 │       └── metrics_impl.rs # Gateway stats
 ├── host/                   # JavaScript runtime
-│   ├── runtime.js          # **Hot-standby pool + crash recovery**
+│   ├── runtime.js          # **2oo3 TMR voting + crash recovery**
 │   ├── shim/
 │   │   ├── modbus-source.js
 │   │   ├── mqtt-sink.js
@@ -99,22 +99,32 @@ protocol-gateway-sandbox/
 ├── legacy/                 # Python "villain" comparison
 │   └── vulnerable_gateway.py
 ├── dashboard/              # Leptos web UI
-│   ├── src/lib.rs          # **Redundancy visualization**
+│   ├── src/lib.rs          # **Real WASM measurements + 2oo3 visualization**
 │   └── styles.css          # Security console dark theme
 └── docs/
-    ├── [ARCHITECTURE.md](docs/ARCHITECTURE.md)     # Hot-standby pattern
-    └── [SECURITY.md](docs/SECURITY.md)             # IEC 62443 alignment
+    ├── [ARCHITECTURE.md](docs/ARCHITECTURE.md)     # 2oo3 TMR pattern
+    └── [SECURITY.md](docs/SECURITY.md)             # IEC 62443 + SIL 3 alignment
 ```
 
 ## 🖥️ Dashboard Demo
 
-The dashboard shows **two live terminals side-by-side**:
+The dashboard shows **two live terminals side-by-side** with **real WASM measurements**:
 
-| Python Terminal | WASM Terminal |
-|-----------------|---------------|
-| Shows startup, then 💥 CRASH | Shows startup, ⚠️ warning, ✅ continues |
-| 60-second restart countdown | Recovers in ~5ms, keeps processing |
-| Connection to PLC lost | No impact on operations |
+| Python (Multiprocessing) | WASM (2oo3 Voting) |
+|--------------------------|--------------------|
+| 3 workers: 1 active, 2 idle | 3 instances: all voting |
+| Crash detection only | **Fault detection via voting** |
+| ~500ms worker spawn (simulated) | **~4ms instantiate (real)** |
+| No fault isolation | Faulty instance identified |
+
+### Real vs Simulated Metrics
+
+| Metric | Source |
+|--------|--------|
+| WASM compile time | ✅ Real `WebAssembly.compile()` |
+| WASM instantiate time | ✅ Real `WebAssembly.instantiate()` |
+| WASM memory | ✅ Real measurement |
+| Python spawn time | 🔶 Simulated (~500ms based on benchmarks) |
 
 Run locally:
 ```bash
@@ -167,45 +177,52 @@ cd host && node runtime.js
 
 ## 📊 Key Metrics
 
-| Metric | Python | WASM (Cold) | WASM (Hot-Standby) |
-|--------|--------|-------------|--------------------|
+| Metric | Python | WASM (Cold) | WASM (2oo3 TMR) |
+|--------|--------|-------------|-----------------|
 | **Crash behavior** | Process dies | Sandbox traps | Sandbox traps |
-| **Recovery time** | Manual (~60s) | Auto (~8ms) | **Instant (~100μs)** |
+| **Recovery time** | Manual (~60s) | Auto (~8ms) | **Instant (voting)** |
+| **Fault detection** | Crash only | Crash only | **Wrong result detected** |
 | **Packets lost** | All in-flight | 1-2 | **0** |
-| **PLC impact** | Connection lost | None | None |
 
-### Hot-Standby Redundancy
+### 2oo3 Triple Modular Redundancy (TMR)
 
-We apply industrial redundancy patterns (IEC 62439-3) at the software layer:
+We apply SIL 3 safety patterns (IEC 61508) at the software layer:
 
 ```
-┌─────────────────┐     ┌─────────────────┐
-│   INSTANCE 0    │ ←→  │   INSTANCE 1    │
-│   (PRIMARY)     │     │   (STANDBY)     │
-└─────────────────┘     └─────────────────┘
-
-On crash: activeIndex swaps instantly (~100μs)
-Failed instance rebuilds async (8ms, non-blocking)
+┌───────────┐     ┌───────────┐     ┌───────────┐
+│ INSTANCE 0│     │ INSTANCE 1│     │ INSTANCE 2│
+│    ✓      │     │    ✓      │     │    ✗      │
+└─────┬─────┘     └─────┬─────┘     └─────┬─────┘
+      │                 │                 │
+      └────────┬────────┴────────┬────────┘
+               │     VOTER       │
+               │  2/3 agree ✓    │
+               └────────┬────────┘
+                        ▼
+                  Result: OK
+                  Faulty: Instance 2 (rebuild async)
 ```
 
-**Why not just use fast restart?** Even 8ms loses packets. Hot-standby = zero loss.
+**Why 2oo3 over 1oo2?** 
+- 1oo2 detects crashes only
+- 2oo3 detects crashes **AND wrong results** (Byzantine faults)
+- SIL 3 safety systems (Triconex, HIMA) use 2oo3 for emergency shutdown
 
-### Why WASM Hot-Standby Beats Traditional Industrial Solutions
+### Why WASM 2oo3 Beats Traditional Industrial Solutions
 
-| Solution | Switchover Time | Memory Overhead | IPC Overhead | Complexity |
-|----------|----------------|-----------------|--------------|------------|
-| **PLC Hardware Redundancy** | ~10-50μs | 2x hardware cost | N/A | High |
-| **PRP/HSR (IEC 62439-3)** | ~50μs | Network duplication | None | Medium |
-| **Python Multiprocessing** | ~5ms | 30-50MB per worker | IPC penalty | Medium |
-| **Docker Container Restart** | ~500ms-2s | Container overhead | Process isolation | Low |
-| **WASM Hot-Standby** | **~100μs** | **~2MB per instance** | **None (same process)** | **Low** |
+| Solution | Fault Detection | Rebuild Time | Memory |
+|----------|----------------|--------------|--------|
+| **PLC 2oo3 (Triconex)** | Voting | Hardware | Expensive |
+| **Python Multiprocessing** | Crash only | ~500ms | 30-50MB/worker |
+| **Docker Restart** | Crash only | ~2-5s | Container overhead |
+| **WASM 2oo3** | **Voting** | **~8ms** | **~2MB/instance** |
 
-**Key Advantages of WASM:**
+**Key Advantages of WASM 2oo3:**
 
-1. **Same-Process Isolation**: Both instances share the same Node.js process — no IPC overhead
-2. **Memory Efficiency**: WASM linear memory is ~1-2MB vs Python's ~30-50MB runtime
-3. **True Sandboxing**: Unlike containers, WASM provides language-level isolation
-4. **Instant Instantiation**: Compiled module is cached; new instance is just memory allocation
+1. **Voting Fault Detection**: Identifies *which* instance is faulty, not just that one crashed
+2. **Same-Process Isolation**: All 3 instances share the same Node.js process — no IPC overhead
+3. **Memory Efficiency**: WASM linear memory is ~2MB per instance vs Python's ~30-50MB
+4. **Async Rebuild**: Faulty instance rebuilds in background (~8ms) without blocking voting
 
 ## ⚠️ What This Doesn't Solve
 
@@ -222,8 +239,8 @@ See [**Security Analysis**](docs/SECURITY.md#what-each-technology-solves-and-doe
 
 ## 📚 Documentation
 
-- [**Architecture Deep Dive**](docs/ARCHITECTURE.md): Hot-standby pattern, "Compile-Once, Instantiate-Many"
-- [**Security Analysis**](docs/SECURITY.md): What each technology solves, IEC 62443 alignment, limitations
+- [**Architecture Deep Dive**](docs/ARCHITECTURE.md): 2oo3 TMR voting, "Compile-Once, Instantiate-Many"
+- [**Security Analysis**](docs/SECURITY.md): What each technology solves, SIL 3 alignment, limitations
 
 ## 📜 License
 
