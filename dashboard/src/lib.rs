@@ -186,9 +186,11 @@ pub fn App() -> impl IntoView {
                             }}
                         </div>
                     </div>
-                    <div class="terminal-output">
+                    <div class="terminal-output" id="python-terminal-output">
                         {move || {
                             let entries = python_logs.get();
+                            // auto-scroll after render
+                            request_animation_frame(|| scroll_to_bottom("python-terminal-output"));
                             if entries.is_empty() {
                                 view! { <div class="terminal-placeholder">"$ ready"</div> }.into_view()
                             } else {
@@ -206,9 +208,10 @@ pub fn App() -> impl IntoView {
                         <div class="terminal-subtitle">"nom parser"</div>
                         <div class="terminal-status online">"🟢 UP"</div>
                     </div>
-                    <div class="terminal-output">
+                    <div class="terminal-output" id="wasm-terminal-output">
                         {move || {
                             let entries = wasm_logs.get();
+                            request_animation_frame(|| scroll_to_bottom("wasm-terminal-output"));
                             if entries.is_empty() {
                                 view! { <div class="terminal-placeholder">"$ ready"</div> }.into_view()
                             } else {
@@ -271,7 +274,7 @@ pub fn App() -> impl IntoView {
                     <button class="chaos-button" disabled=is_running on:click=move |_| trigger_chaos(())>
                         {move || if is_running.get() { "⏳..." } else { "🎯 Attack" }}
                     </button>
-                    <button class="reset-button" on:click=move |_| reset_demo(())>"🔄"</button>
+                    <button class="reset-button" on:click=move |_| reset_demo(())>"🔄 Reset Demo"</button>
                 </div>
             </div>
             
@@ -374,6 +377,25 @@ fn set_timeout<F: FnOnce() + 'static>(cb: F, dur: std::time::Duration) {
         closure.as_ref().unchecked_ref(), dur.as_millis() as i32
     ).unwrap();
     closure.forget();
+}
+
+fn request_animation_frame<F: FnOnce() + 'static>(cb: F) {
+    use wasm_bindgen::closure::Closure;
+    let window = web_sys::window().unwrap();
+    let closure = Closure::once(cb);
+    window.request_animation_frame(closure.as_ref().unchecked_ref()).unwrap();
+    closure.forget();
+}
+
+fn scroll_to_bottom(element_id: &str) {
+    if let Some(window) = web_sys::window() {
+        if let Some(document) = window.document() {
+            if let Some(element) = document.get_element_by_id(element_id) {
+                let scroll_height = element.scroll_height();
+                element.set_scroll_top(scroll_height);
+            }
+        }
+    }
 }
 
 #[wasm_bindgen(start)]
