@@ -499,6 +499,19 @@ body {
   text-transform: uppercase;
 }
 
+.stat-subtext {
+  font-size: 0.65rem;
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--bg-hover);
+}
+
+.stat-subtext.success {
+  color: var(--accent-green);
+}
+
 /* chaos panel */
 .chaos-panel {
   border-color: rgba(255, 102, 0, 0.2);

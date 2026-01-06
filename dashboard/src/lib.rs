@@ -507,6 +507,7 @@ pub fn App() -> impl IntoView {
                             <span class="stat-label">"Downtime"</span>
                         </div>
                     </div>
+                    <div class="stat-subtext">"⚠️ Frames lost during downtime (1 active worker)"</div>
                 </div>
                 
                 <div class="panel stats-panel wasm-stats">
@@ -525,6 +526,7 @@ pub fn App() -> impl IntoView {
                             <span class="stat-label">"Downtime"</span>
                         </div>
                     </div>
+                    <div class="stat-subtext success">"✓ No frames lost (2/3 still voting during rebuild)"</div>
                 </div>
             </div>
             
