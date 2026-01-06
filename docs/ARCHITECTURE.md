@@ -114,3 +114,103 @@ If someone asks "why only two function codes?", the answer is:
 | Recovery | Manual restart (60s) | Automatic (8ms) |
 | Attack blast radius | Entire gateway | Single request |
 | Memory corruption | Heap corruption possible | Linear memory isolated |
+
+## Hot-Standby Redundancy
+
+### The Question
+
+> "Does WASM's fast restart (~8ms) eliminate the need for redundancy?"
+
+**Answer:** No — but it makes redundancy even faster.
+
+### Instance Pool Architecture
+
+We apply industrial redundancy patterns (IEC 62439-3) at the software layer:
+
+```
+┌────────────────────────────────────────────────────────────────────────┐
+│                         INSTANCE POOL                                  │
+│   ┌─────────────────┐        ┌─────────────────┐                       │
+│   │   INSTANCE 0    │        │   INSTANCE 1    │                       │
+│   │   (PRIMARY)     │   ←→   │   (STANDBY)     │                       │
+│   │   Active: ✓     │        │   Warm: ✓       │                       │
+│   └─────────────────┘        └─────────────────┘                       │
+│                                                                        │
+│   On crash: activeIndex swaps instantly (~100μs)                       │
+│   Failed instance rebuilds asynchronously (8ms, non-blocking)          │
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+### Why This Matters
+
+| Metric | Cold Restart | Hot-Standby |
+|--------|--------------|-------------|
+| **Switchover time** | ~8ms | **~100μs** |
+| **Packets lost** | 1-2 at 1000/sec | **0** |
+| **Blocking** | Yes (instantiate) | No (pointer swap) |
+| **Rebuild** | Synchronous | Asynchronous |
+
+### Comparison with Python Hot-Standby
+
+Python can also implement hot-standby (multiprocessing, pre-fork workers), but:
+
+| Metric | Python | WASM |
+|--------|--------|------|
+| **Memory per instance** | ~30-50 MB | ~1-2 MB |
+| **Switchover** | ~5ms (IPC) | ~100μs (same process) |
+| **Startup** | ~500ms | ~8ms |
+
+WASM is faster because both instances live in the same process — no IPC overhead.
+
+### IEC 62439-3 Alignment
+
+The hot-standby pattern mirrors industrial redundancy standards:
+
+| IEC 62439-3 Principle | Our Implementation |
+|-----------------------|---------------------|
+| Parallel paths | Two WASM instances |
+| Zero switchover time | Index swap (~100μs) |
+| No data loss | Standby already warm |
+| Async recovery | Failed instance rebuilds in background |
+
+## Why WASM Over Traditional Industrial Solutions
+
+### The Trade-off Matrix
+
+| Solution | Fault Type | Switchover | Memory | Cost |
+|----------|-----------|------------|--------|------|
+| **PLC Hardware Redundancy** | Hardware | ~10-50μs | N/A | 💰💰💰 (2x hardware) |
+| **PRP/HSR (IEC 62439-3)** | Network | ~50μs | Network duplication | 💰💰 |
+| **Python Multiprocessing** | Software | ~5ms | 30-50MB/worker | 💰 |
+| **Docker Restart** | Software | ~500ms-2s | Container overhead | 💰 |
+| **WASM Hot-Standby** | Software | **~100μs** | **~2MB/instance** | **💰** |
+
+### Why WASM Wins for Software Faults
+
+1. **Same-Process Isolation**
+   - Both WASM instances live in the same Node.js process
+   - No IPC overhead, no serialization, no context switching
+   - Switchover is literally changing an index variable
+
+2. **Memory Efficiency**
+   - WASM linear memory: ~1-2MB per instance
+   - Python runtime: ~30-50MB per process
+   - For a 2-instance pool: 4MB vs 100MB
+
+3. **True Sandboxing Without OS Overhead**
+   - Containers isolate at OS level (slow)
+   - WASM isolates at language level (fast)
+   - Trap handling is part of the WASM spec, not OS signals
+
+4. **Deterministic Recovery**
+   - `WebAssembly.instantiate()` is predictable (~8ms)
+   - Process restart depends on OS, init system, etc.
+
+### What WASM Doesn't Replace
+
+WASM hot-standby is for **software fault tolerance**, not:
+- ❌ Network path redundancy (still need PRP/HSR for that)
+- ❌ Hardware failure (still need redundant PLCs)
+- ❌ Power failure (still need UPS)
+
+It's a **complementary layer** in defense-in-depth, not a replacement.

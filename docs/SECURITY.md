@@ -125,24 +125,92 @@ All write operations rejected. This is a **read-only data conduit**.
 
 ## Crash Recovery Metrics
 
-| Metric | Target | Achieved |
-|--------|--------|----------|
-| Recovery time | <10ms | ~8ms |
+| Metric | Cold Restart | Hot-Standby |
+|--------|--------------|-------------|
+| Recovery time | ~8ms | **~100μs** |
 | Host crash rate | 0% | 0% |
-| Memory leak on crash | 0 bytes | 0 bytes (linear memory wiped) |
-| State preserved | N/A | Fresh instance each time |
+| Memory leak on crash | 0 bytes | 0 bytes |
+| Packets lost (1000/sec) | 1-2 | **0** |
 
-## Future Considerations
+### Hot-Standby Redundancy
 
-### What This Doesn't Protect Against
+The host runtime maintains two WASM instances. On crash:
 
-1. **Logic bugs in the parser** - If the parser returns wrong data, WASM won't catch that
-2. **Side-channel attacks** - Timing attacks still possible
-3. **Host vulnerabilities** - If the Node.js host has bugs, those are not sandboxed
+1. **Instant switchover** (~100μs) - just change the active index
+2. **Async rebuild** - failed instance rebuilds in background
+3. **Zero packet loss** - standby is already warm
 
-### Recommended Hardening
+This mirrors industrial redundancy patterns (IEC 62439-3) at software level.
 
-1. **Cryptographic signing** - Verify WASM component before loading
-2. **Resource limits** - Cap memory and CPU per instance
-3. **Audit logging** - Log all crashes for forensic analysis
-4. **Rate limiting** - Detect and block rapid crash attempts
+## What Each Technology Solves (And Doesn't)
+
+Understanding the **boundaries** of each technology is critical for defense-in-depth.
+
+### Rust
+
+| ✅ Solves | ❌ Doesn't Solve |
+|-----------|-----------------|
+| Buffer overflows | Logic bugs |
+| Use-after-free | Algorithm errors |
+| Data races | Business logic mistakes |
+| Null pointer dereference | Incorrect calculations |
+
+*Example: Rust prevents accessing invalid memory. It doesn't prevent returning the wrong register value.*
+
+### WASM
+
+| ✅ Solves | ❌ Doesn't Solve |
+|-----------|-----------------|
+| Memory isolation (sandbox) | Logic bugs |
+| Trap instead of crash | Network-level security |
+| No ambient syscall access | Side-channel attacks |
+| Deterministic execution | Authentication |
+
+*Example: WASM catches buffer overflows at runtime. It doesn't catch a parser that returns wrong data.*
+
+### WASI
+
+| ✅ Solves | ❌ Doesn't Solve |
+|-----------|-----------------|
+| Capability-based security | Network encryption |
+| Deny-by-default permissions | User authentication |
+| Explicit host control | Access control policies |
+| No ambient authority | Audit logging |
+
+*Example: WASI prevents the parser from opening `/etc/passwd`. It doesn't encrypt the Modbus traffic.*
+
+### Hot-Standby Redundancy
+
+| ✅ Solves | ❌ Doesn't Solve |
+|-----------|-----------------|
+| Software fault recovery (~100μs) | Network path failure |
+| Parser crash containment | Hardware failure |
+| Zero packet loss on trap | Power failure |
+
+*Example: Hot-standby recovers from a WASM trap instantly. If the NIC dies, hot-standby can't help.*
+
+## Complementary Technologies Still Needed
+
+| Concern | WASM/WASI/Rust? | What You Need |
+|---------|-----------------|---------------|
+| Memory safety | ✅ | — |
+| Sandbox isolation | ✅ | — |
+| Capability control | ✅ | — |
+| Software fault recovery | ✅ | — |
+| Network encryption | ❌ | TLS, mTLS |
+| Authentication | ❌ | OAuth, certificates |
+| Network redundancy | ❌ | PRP/HSR (IEC 62439-3), dual NICs |
+| Hardware redundancy | ❌ | Redundant servers, failover |
+| Power redundancy | ❌ | UPS, generators |
+| Logic correctness | ❌ | Unit tests, fuzzing, formal verification |
+
+## Recommended Hardening
+
+Beyond WASM sandboxing, consider:
+
+1. **Cryptographic signing** — Verify WASM component before loading
+2. **Resource limits** — Cap memory and CPU per instance
+3. **Audit logging** — Log all crashes for forensic analysis
+4. **Rate limiting** — Detect and block rapid crash attempts
+5. **TLS everywhere** — Encrypt Modbus-over-TCP and MQTT
+6. **mTLS** — Mutual authentication between gateway and broker

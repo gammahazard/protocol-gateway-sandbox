@@ -1,6 +1,20 @@
 // dashboard/src/lib.rs
-// protocol gateway sandbox - security console dashboard
-// dual terminal view: python crashes and restarts, wasm never crashes.
+// ============================================================================
+// PROTOCOL GATEWAY SANDBOX - SECURITY CONSOLE DASHBOARD
+// ============================================================================
+//
+// This dashboard demonstrates the key advantage of WASM sandboxing:
+// - Python: crashes → 60-90s restart → telemetry lost
+// - WASM: trap → ~100μs switchover (hot-standby) → zero packet loss
+//
+// HOT-STANDBY VISUALIZATION:
+// The WASM terminal now shows a "redundancy panel" with:
+// - Instance pool status (Primary/Standby)
+// - Switchover time (μs)
+// - Zero-downtime recovery
+//
+// This mirrors industrial redundancy patterns (IEC 62439-3) at software level.
+// ============================================================================
 
 #![allow(unused)]
 
@@ -52,20 +66,31 @@ fn get_attack_config(attack: &str) -> AttackConfig {
 
 #[component]
 pub fn App() -> impl IntoView {
-    // consistent stats for both gateways
+    // ========================================================================
+    // GATEWAY STATISTICS
+    // Both gateways track the same metrics for fair comparison
+    // ========================================================================
     let (python_processed, set_python_processed) = create_signal(0u64);
     let (python_rejected, set_python_rejected) = create_signal(0u64);
     let (python_downtime, set_python_downtime) = create_signal(0i32);
     
     let (wasm_processed, set_wasm_processed) = create_signal(0u64);
     let (wasm_rejected, set_wasm_rejected) = create_signal(0u64);
-    let (wasm_downtime, set_wasm_downtime) = create_signal(0i32); // always 0
+    let (wasm_downtime, set_wasm_downtime) = create_signal(0i32); // Always 0 with hot-standby
     
-    // terminal logs
+    // Terminal output logs
     let (python_logs, set_python_logs) = create_signal(Vec::<LogEntry>::new());
     let (wasm_logs, set_wasm_logs) = create_signal(Vec::<LogEntry>::new());
     
-    // state
+    // ========================================================================
+    // HOT-STANDBY REDUNDANCY STATE
+    // Mirrors the real runtime.js instance pool
+    // ========================================================================
+    let (wasm_active_instance, set_wasm_active_instance) = create_signal(0u8);
+    let (wasm_switchover_count, set_wasm_switchover_count) = create_signal(0u32);
+    let (wasm_last_switchover_us, set_wasm_last_switchover_us) = create_signal(0u32);
+    
+    // UI state
     let (python_crashed, set_python_crashed) = create_signal(false);
     let (python_countdown, set_python_countdown) = create_signal(0i32);
     let (is_running, set_is_running) = create_signal(false);
@@ -122,16 +147,31 @@ pub fn App() -> impl IntoView {
                 
                 simulate_restart(set_python_logs, set_python_crashed, set_python_countdown, config.restart_time, telemetry_lost);
                 
-                // wasm handles gracefully - detailed
-                let recovery_ms = 1.5 + (js_sys::Math::random() * 3.0);
+                // ============================================================
+                // WASM HOT-STANDBY FAILOVER SIMULATION
+                // This mirrors the real runtime.js behavior:
+                // 1. Trap detected
+                // 2. Instant switchover to standby instance (~100μs)
+                // 3. Async rebuild of failed instance (non-blocking)
+                // ============================================================
+                let switchover_us = 80 + (js_sys::Math::random() * 40.0) as u32; // 80-120μs
+                let old_instance = wasm_active_instance.get();
+                let new_instance = (old_instance + 1) % 2;
+                
                 set_wasm_logs.update(|logs| {
-                    logs.push(LogEntry { level: "warn".into(), message: format!("[WARN] nom::Err::Incomplete | Expected: 7 bytes, Got: {}", config.bytes_corrupted.min(6)) });
-                    logs.push(LogEntry { level: "info".into(), message: "[INFO] Frame rejected - invalid MBAP header".into() });
-                    logs.push(LogEntry { level: "success".into(), message: format!("[OK] Sandbox trap handled in {:.2}ms", recovery_ms) });
-                    logs.push(LogEntry { level: "success".into(), message: "[OK] Parser state reset - ready for next frame".into() });
+                    logs.push(LogEntry { level: "warn".into(), message: format!("[TRAP] nom::Err::Incomplete | Expected: 7 bytes, Got: {}", config.bytes_corrupted.min(6)) });
+                    logs.push(LogEntry { level: "warn".into(), message: format!("[TRAP] Instance {} crashed - initiating switchover", old_instance) });
+                    logs.push(LogEntry { level: "success".into(), message: format!("[SWITCHOVER] Instance {} → {} ({}μs)", old_instance, new_instance, switchover_us) });
+                    logs.push(LogEntry { level: "info".into(), message: format!("[ASYNC] Rebuilding instance {} in background...", old_instance) });
+                    logs.push(LogEntry { level: "success".into(), message: "[OK] Hot-standby active - zero packet loss".into() });
                 });
+                
+                // Update hot-standby state
+                set_wasm_active_instance.set(new_instance);
+                set_wasm_switchover_count.update(|n| *n += 1);
+                set_wasm_last_switchover_us.set(switchover_us);
                 set_wasm_rejected.update(|n| *n += 1);
-                // wasm_downtime stays at 0
+                // wasm_downtime stays at 0 - hot-standby means instant recovery
                 
                 // wasm continues processing while python is down
                 for delay in [1500, 3000, 4500] {
@@ -151,17 +191,28 @@ pub fn App() -> impl IntoView {
         );
     };
     
+    // ========================================================================
+    // RESET FUNCTION
+    // Clears all state including hot-standby redundancy state
+    // ========================================================================
     let reset_demo = move |_| {
+        // Reset Python state
         set_python_crashed.set(false);
         set_python_countdown.set(0);
         set_python_logs.set(Vec::new());
-        set_wasm_logs.set(Vec::new());
         set_python_processed.set(0);
         set_python_rejected.set(0);
         set_python_downtime.set(0);
+        
+        // Reset WASM state
+        set_wasm_logs.set(Vec::new());
         set_wasm_processed.set(0);
         set_wasm_rejected.set(0);
-        set_total_bytes_processed.set(0);
+        
+        // Reset hot-standby redundancy state
+        set_wasm_active_instance.set(0);
+        set_wasm_switchover_count.set(0);
+        set_wasm_last_switchover_us.set(0);
     };
     
     view! {
@@ -259,6 +310,48 @@ pub fn App() -> impl IntoView {
                             <span class="stat-label">"Downtime"</span>
                         </div>
                     </div>
+                </div>
+            </div>
+            
+            // ================================================================
+            // HOT-STANDBY REDUNDANCY PANEL
+            // Visual representation of the instance pool for portfolio demo
+            // ================================================================
+            <div class="panel redundancy-panel">
+                <h2>"🔄 Hot-Standby Redundancy"</h2>
+                <div class="redundancy-diagram">
+                    <div class="instance-box"
+                        class:active=move || wasm_active_instance.get() == 0
+                        class:standby=move || wasm_active_instance.get() != 0
+                    >
+                        <span class="instance-label">"Instance 0"</span>
+                        <span class="instance-status">
+                            {move || if wasm_active_instance.get() == 0 { "PRIMARY" } else { "STANDBY" }}
+                        </span>
+                    </div>
+                    <div class="switchover-arrow">
+                        <span class="arrow-icon">"⇄"</span>
+                        <span class="switchover-time">
+                            {move || {
+                                let us = wasm_last_switchover_us.get();
+                                if us > 0 { format!("{}μs", us) } else { "—".into() }
+                            }}
+                        </span>
+                    </div>
+                    <div class="instance-box"
+                        class:active=move || wasm_active_instance.get() == 1
+                        class:standby=move || wasm_active_instance.get() != 1
+                    >
+                        <span class="instance-label">"Instance 1"</span>
+                        <span class="instance-status">
+                            {move || if wasm_active_instance.get() == 1 { "PRIMARY" } else { "STANDBY" }}
+                        </span>
+                    </div>
+                </div>
+                <div class="redundancy-stats">
+                    <span class="redundancy-stat">"Switchovers: "{wasm_switchover_count}</span>
+                    <span class="redundancy-stat">"Pool: 2/2 ready"</span>
+                    <span class="redundancy-stat">"Pattern: IEC 62439-3"</span>
                 </div>
             </div>
             

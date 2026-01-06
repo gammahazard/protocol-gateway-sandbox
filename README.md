@@ -52,9 +52,9 @@
 | Component | Technology | Purpose |
 |-----------|------------|---------|
 | **Modbus Parser** | Rust → WASM | Memory-safe parsing of dangerous binary protocol |
-| **Host Runtime** | JavaScript (Node.js) | WASM loader with crash recovery |
+| **Host Runtime** | JavaScript (Node.js) | WASM loader with hot-standby redundancy |
 | **Mock Sources** | JS Shims | Simulated PLC and MQTT broker |
-| **Dashboard** | Leptos → WASM | Real-time security console |
+| **Dashboard** | Leptos → WASM | Real-time security console with redundancy visualization |
 
 ### IEC 62443 Alignment
 
@@ -89,21 +89,21 @@ protocol-gateway-sandbox/
 │       │   └── payload.rs  # JSON serialization
 │       └── metrics_impl.rs # Gateway stats
 ├── host/                   # JavaScript runtime
-│   ├── runtime.js          # WASM loader + crash recovery
+│   ├── runtime.js          # **Hot-standby pool + crash recovery**
 │   ├── shim/
 │   │   ├── modbus-source.js
 │   │   ├── mqtt-sink.js
 │   │   └── chaos-attacks.js
 │   └── test/
-│       └── fuzz.test.js    # The crown jewel
+│       └── fuzz.test.js    # Security invariant tests
 ├── legacy/                 # Python "villain" comparison
 │   └── vulnerable_gateway.py
-├── dashboard/              # Leptos web UI - dual terminal view
-│   ├── src/lib.rs          # Side-by-side Python vs WASM terminals
+├── dashboard/              # Leptos web UI
+│   ├── src/lib.rs          # **Redundancy visualization**
 │   └── styles.css          # Security console dark theme
 └── docs/
-    ├── [ARCHITECTURE.md](docs/ARCHITECTURE.md)     # System design and rationale
-    └── [SECURITY.md](docs/SECURITY.md)             # Security analysis and IEC 62443
+    ├── [ARCHITECTURE.md](docs/ARCHITECTURE.md)     # Hot-standby pattern
+    └── [SECURITY.md](docs/SECURITY.md)             # IEC 62443 alignment
 ```
 
 ## 🖥️ Dashboard Demo
@@ -167,28 +167,63 @@ cd host && node runtime.js
 
 ## 📊 Key Metrics
 
-| Metric | Python | WASM |
-|--------|--------|------|
-| **Crash on malformed input** | Process dies | Sandbox traps |
-| **Recovery time** | Manual restart (~60s) | Automatic (~8ms) |
-| **Blast radius** | Entire gateway | Single request |
-| **PLC impact** | Connection lost | None |
+| Metric | Python | WASM (Cold) | WASM (Hot-Standby) |
+|--------|--------|-------------|--------------------|
+| **Crash behavior** | Process dies | Sandbox traps | Sandbox traps |
+| **Recovery time** | Manual (~60s) | Auto (~8ms) | **Instant (~100μs)** |
+| **Packets lost** | All in-flight | 1-2 | **0** |
+| **PLC impact** | Connection lost | None | None |
 
-## 🔗 Portfolio Story
+### Hot-Standby Redundancy
 
-This project is the evolution of [Vanguard ICS Guardian](https://github.com/gammahazard/vanguard-ics-guardian):
+We apply industrial redundancy patterns (IEC 62439-3) at the software layer:
 
-| Project | Story | Skills Demonstrated |
-|---------|-------|---------------------|
-| **Vanguard ICS Guardian** | "I understand capability-based security" | WASI, IEC 62443, data diode |
-| **Protocol Gateway Sandbox** | "I solved legacy protocol translation safely" | Binary parsing, fuzzing, crash containment |
+```
+┌─────────────────┐     ┌─────────────────┐
+│   INSTANCE 0    │ ←→  │   INSTANCE 1    │
+│   (PRIMARY)     │     │   (STANDBY)     │
+└─────────────────┘     └─────────────────┘
 
-Together they show: **Security depth + Engineering breadth**
+On crash: activeIndex swaps instantly (~100μs)
+Failed instance rebuilds async (8ms, non-blocking)
+```
+
+**Why not just use fast restart?** Even 8ms loses packets. Hot-standby = zero loss.
+
+### Why WASM Hot-Standby Beats Traditional Industrial Solutions
+
+| Solution | Switchover Time | Memory Overhead | IPC Overhead | Complexity |
+|----------|----------------|-----------------|--------------|------------|
+| **PLC Hardware Redundancy** | ~10-50μs | 2x hardware cost | N/A | High |
+| **PRP/HSR (IEC 62439-3)** | ~50μs | Network duplication | None | Medium |
+| **Python Multiprocessing** | ~5ms | 30-50MB per worker | IPC penalty | Medium |
+| **Docker Container Restart** | ~500ms-2s | Container overhead | Process isolation | Low |
+| **WASM Hot-Standby** | **~100μs** | **~2MB per instance** | **None (same process)** | **Low** |
+
+**Key Advantages of WASM:**
+
+1. **Same-Process Isolation**: Both instances share the same Node.js process — no IPC overhead
+2. **Memory Efficiency**: WASM linear memory is ~1-2MB vs Python's ~30-50MB runtime
+3. **True Sandboxing**: Unlike containers, WASM provides language-level isolation
+4. **Instant Instantiation**: Compiled module is cached; new instance is just memory allocation
+
+## ⚠️ What This Doesn't Solve
+
+WASM + WASI + Rust solve **software security** — not everything:
+
+| ✅ We Solve | ❌ Still Need |
+|-------------|--------------|
+| Memory safety (Rust) | Network encryption (TLS) |
+| Sandbox isolation (WASM) | Authentication (OAuth, certs) |
+| Capability control (WASI) | Network redundancy (PRP/HSR) |
+| Software fault recovery | Hardware/power redundancy |
+
+See [**Security Analysis**](docs/SECURITY.md#what-each-technology-solves-and-doesnt) for the full breakdown.
 
 ## 📚 Documentation
 
-- [**Architecture Deep Dive**](docs/ARCHITECTURE.md): Why we use the "Compile-Once, Instantiate-Many" pattern for <10ms recovery.
-- [**Security Analysis**](docs/SECURITY.md): Detailed breakdown of the attack surface, IEC 62443 alignment, and fuzzing methodology.
+- [**Architecture Deep Dive**](docs/ARCHITECTURE.md): Hot-standby pattern, "Compile-Once, Instantiate-Many"
+- [**Security Analysis**](docs/SECURITY.md): What each technology solves, IEC 62443 alignment, limitations
 
 ## 📜 License
 

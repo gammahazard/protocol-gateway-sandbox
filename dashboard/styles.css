@@ -397,6 +397,107 @@ body {
   background: var(--bg-hover);
 }
 
+/* ============================================================================
+ * HOT-STANDBY REDUNDANCY PANEL
+ * Visual representation of instance pool for portfolio demo
+ * ============================================================================ */
+.redundancy-panel {
+  border-color: rgba(0, 170, 255, 0.3);
+  margin-bottom: 1rem;
+}
+
+.redundancy-panel h2 {
+  color: var(--accent-blue);
+}
+
+.redundancy-diagram {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+  padding: 0.5rem;
+}
+
+.instance-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--radius-md);
+  border: 2px solid var(--bg-hover);
+  background: var(--bg-secondary);
+  transition: all 0.3s ease;
+  min-width: 100px;
+}
+
+.instance-box.active {
+  border-color: var(--accent-green);
+  background: rgba(0, 255, 136, 0.1);
+  box-shadow: 0 0 12px rgba(0, 255, 136, 0.2);
+}
+
+.instance-box.standby {
+  border-color: var(--accent-yellow);
+  background: rgba(255, 170, 0, 0.05);
+  opacity: 0.7;
+}
+
+.instance-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+}
+
+.instance-status {
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 0.25rem;
+}
+
+.instance-box.active .instance-status {
+  color: var(--accent-green);
+}
+
+.instance-box.standby .instance-status {
+  color: var(--accent-yellow);
+}
+
+.switchover-arrow {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.arrow-icon {
+  font-size: 1.5rem;
+  color: var(--accent-blue);
+}
+
+.switchover-time {
+  font-size: 0.7rem;
+  font-family: var(--font-mono);
+  color: var(--accent-green);
+  font-weight: 600;
+}
+
+.redundancy-stats {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.redundancy-stat {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+}
+
 /* footer */
 .footer {
   text-align: center;
