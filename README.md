@@ -135,7 +135,7 @@ cd host && node runtime.js
 
 ## 🔗 Portfolio Story
 
-This project is the evolution of [Vanguard ICS Guardian](https://github.com/your-repo/vanguard-ics-guardian):
+This project is the evolution of [Vanguard ICS Guardian](https://github.com/gammahazard/vanguard-ics-guardian):
 
 | Project | Story | Skills Demonstrated |
 |---------|-------|---------------------|

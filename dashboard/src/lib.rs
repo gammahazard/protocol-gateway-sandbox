@@ -3,6 +3,8 @@
 // visualizes the wasm vs python gateway comparison and allows
 // triggering chaos attacks to demonstrate crash containment.
 
+#![allow(unused)]
+
 use leptos::*;
 use wasm_bindgen::prelude::*;
 
@@ -38,13 +40,6 @@ pub fn App() -> impl IntoView {
         });
     };
     
-    // run single frame (simulated)
-    let run_frame = move |_| {
-        set_frames_processed.update(|n| *n += 1);
-        set_bytes_in.update(|n| *n += 19);
-        set_bytes_out.update(|n| *n += 128);
-        add_log("success", "[WASM]", "Frame processed successfully");
-    };
     
     // trigger chaos attack
     let trigger_chaos = move |_| {
@@ -330,7 +325,7 @@ fn ChaosPanel(
                             class:selected=is_selected
                             on:click=move |_| set_selected_attack.set(id_clone.clone())
                         >
-                            <input type="radio" name="attack" value=id checked=is_selected/>
+                            <input type="radio" name="attack" value=id/>
                             <div>
                                 <div class="attack-name">{name}</div>
                                 <div class="attack-desc">{desc}</div>
