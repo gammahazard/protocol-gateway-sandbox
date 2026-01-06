@@ -88,8 +88,26 @@ protocol-gateway-sandbox/
 │       └── fuzz.test.js    # The crown jewel
 ├── legacy/                 # Python "villain" comparison
 │   └── vulnerable_gateway.py
-├── dashboard/              # Leptos web UI
+├── dashboard/              # Leptos web UI - dual terminal view
+│   ├── src/lib.rs          # Side-by-side Python vs WASM terminals
+│   └── styles.css          # Security console dark theme
 └── docs/
+```
+
+## 🖥️ Dashboard Demo
+
+The dashboard shows **two live terminals side-by-side**:
+
+| Python Terminal | WASM Terminal |
+|-----------------|---------------|
+| Shows startup, then 💥 CRASH | Shows startup, ⚠️ warning, ✅ continues |
+| 60-second restart countdown | Recovers in ~5ms, keeps processing |
+| Connection to PLC lost | No impact on operations |
+
+Run locally:
+```bash
+cd dashboard && trunk serve
+# Open http://localhost:8080
 ```
 
 ## 🚀 Quick Start
