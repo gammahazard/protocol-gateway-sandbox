@@ -238,6 +238,28 @@ WASM + WASI + Rust solve **software security** — not everything:
 
 See [**Security Analysis**](docs/SECURITY.md#what-each-technology-solves-and-doesnt) for the full breakdown.
 
+## 🔧 Deployment Targets
+
+The same WASM component runs anywhere there's a runtime:
+
+| Platform | Runtime | Use Case |
+|----------|---------|----------|
+| **Browser** | Built-in (V8) | Dashboard demo (this repo) |
+| **Node.js** | V8 / JCO | Development, testing |
+| **Edge Devices** | Wasmtime, WasmEdge | Industrial gateways |
+| **Embedded** | WAMR | Microcontrollers, PLCs |
+| **Cloud** | Fastly, Cloudflare Workers | Serverless edge |
+
+### Example Hardware
+
+| Device | Specs | Notes |
+|--------|-------|-------|
+| Raspberry Pi 4 | 4GB RAM, ARM64 | Runs Wasmtime natively |
+| Industrial PC (Advantech, Moxa) | x64, 2-8GB | Production-ready |
+| ESP32 | 520KB RAM | WAMR interpreter mode |
+
+**Key insight:** Write once, deploy to browser (demo), server (test), and edge device (production) with zero code changes.
+
 ## 📚 Documentation
 
 - [**Architecture Deep Dive**](docs/ARCHITECTURE.md): 2oo3 TMR voting, "Compile-Once, Instantiate-Many"
