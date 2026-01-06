@@ -1,0 +1,64 @@
+﻿cargo : warning: 
+method `to_byte` is 
+never used
+At line:1 char:59
++ ... ng = [System.Te
+xt.Encoding]::UTF8; 
+cargo component 
+build 2>&1 | Out-F 
+...
++                    
+                    ~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~
+    + CategoryInfo   
+           : NotSpe  
+  cified: (warning   
+ : method `to_byt    
+e` is never used    
+:String) [], Rem    
+oteException
+    + FullyQualified 
+   ErrorId : Native  
+  CommandError
+ 
+  --> src\modbus\func
+tion.rs:35:12
+   |
+20 | impl 
+FunctionCode {
+   | 
+----------------- 
+method in this 
+implementation
+...
+35 |     pub fn 
+to_byte(&self) -> u8 
+{
+   |            
+^^^^^^^
+   |
+   = note: 
+`#[warn(dead_code)]` 
+(part of 
+`#[warn(unused)]`) 
+on by default
+
+warning: struct 
+`ReadRequest` is 
+never constructed
+  --> src\modbus\func
+tion.rs:46:12
+   |
+46 | pub struct 
+ReadRequest {
+   |            
+^^^^^^^^^^^
+
+warning: `protocol-ga
+teway-guest` (lib) 
+generated 2 warnings
+    Finished `dev` 
+profile [unoptimized 
++ debuginfo] 
+target(s) in 0.44s

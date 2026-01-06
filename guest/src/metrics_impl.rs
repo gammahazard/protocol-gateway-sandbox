@@ -1,7 +1,8 @@
-// guest/src/metrics.rs
+// guest/src/metrics_impl.rs
 // tracks gateway performance and security stats for the dashboard.
 // implements the wit-exported metrics::get-stats function.
 // uses cell-based counters since wasm component instances are single-threaded.
+// renamed from metrics.rs to avoid collision with wit-generated metrics module.
 
 use std::cell::{Cell, RefCell};
 
@@ -17,9 +18,9 @@ thread_local! {
 
 /// metrics tracking for the gateway
 /// all methods are static since we use thread-local storage
-pub struct Metrics;
+pub struct MetricsTracker;
 
-impl Metrics {
+impl MetricsTracker {
     /// record a successfully processed frame
     /// called after parsing and publishing succeed
     pub fn record_frame(size: u64) {
@@ -43,10 +44,8 @@ impl Metrics {
     /// get current stats snapshot
     /// connects to the wit export 'metrics::get-stats'
     /// the host calls this to display live stats on the dashboard
-    pub fn get_snapshot() -> crate::bindings::exports::gateway::protocols::metrics::GatewayStats {
-        use crate::bindings::exports::gateway::protocols::metrics::GatewayStats;
-        
-        GatewayStats {
+    pub fn get_snapshot() -> crate::exports::gateway::protocols::metrics::GatewayStats {
+        crate::exports::gateway::protocols::metrics::GatewayStats {
             frames_processed: FRAMES_PROCESSED.with(|f| f.get()),
             frames_invalid: FRAMES_INVALID.with(|f| f.get()),
             bytes_in: BYTES_IN.with(|b| b.get()),

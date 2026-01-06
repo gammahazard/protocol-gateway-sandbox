@@ -1,9 +1,7 @@
 // guest/src/lib.rs
 // main entry point for the protocol gateway wasm component.
-// this file wires together the modbus parser, mqtt payload builder,
-// and metrics tracking. it implements the wit-exported run() function.
+// simplified version for initial build verification.
 
-// generate bindings from wit interface definitions
 wit_bindgen::generate!({
     world: "protocol-gateway",
     path: "../wit",
@@ -11,59 +9,79 @@ wit_bindgen::generate!({
 
 mod modbus;
 mod mqtt;
-mod metrics;
 
 use modbus::{frame::MbapHeader, function::{FunctionCode, ReadResponse}};
 use mqtt::payload::{TelemetryPayload, Register};
-use metrics::Metrics;
 
-// import the wit-generated bindings for host capabilities
-use crate::bindings::gateway::protocols::{modbus_source, mqtt_sink};
+use std::cell::{Cell, RefCell};
 
-/// implements the wit-exported run function
-/// this is called by the host runtime in a loop
-struct GatewayComponent;
+// metrics storage
+thread_local! {
+    static FRAMES_PROCESSED: Cell<u64> = Cell::new(0);
+    static FRAMES_INVALID: Cell<u64> = Cell::new(0);
+    static BYTES_IN: Cell<u64> = Cell::new(0);
+    static BYTES_OUT: Cell<u64> = Cell::new(0);
+    static LAST_ERROR: RefCell<Option<String>> = RefCell::new(None);
+}
 
-impl Guest for GatewayComponent {
+fn record_frame(size: u64) {
+    FRAMES_PROCESSED.with(|f| f.set(f.get() + 1));
+    BYTES_IN.with(|b| b.set(b.get() + size));
+}
+
+fn record_error(msg: String) {
+    FRAMES_INVALID.with(|f| f.set(f.get() + 1));
+    LAST_ERROR.with(|e| *e.borrow_mut() = Some(msg));
+}
+
+fn record_outbound(size: u64) {
+    BYTES_OUT.with(|b| b.set(b.get() + size));
+}
+
+struct Component;
+
+export!(Component);
+
+impl Guest for Component {
     fn run() {
-        // receive frame from host (mock or real modbus source)
-        let frame = match modbus_source::receive_frame() {
+        // receive frame from host
+        let frame = match gateway::protocols::modbus_source::receive_frame() {
             Ok(data) => data,
             Err(e) => {
-                Metrics::record_error(format!("receive error: {}", e.message));
+                record_error(format!("receive error: {}", e.message));
                 return;
             }
         };
         
         let frame_size = frame.len() as u64;
         
-        // parse mbap header using nom (fuzz-proof)
+        // parse mbap header
         let (remaining, header) = match MbapHeader::parse(&frame) {
             Ok(result) => result,
             Err(_) => {
-                Metrics::record_error("malformed mbap header".to_string());
+                record_error("malformed mbap header".to_string());
                 return;
             }
         };
         
-        // validate header fields
+        // validate header
         if let Err(msg) = header.validate() {
-            Metrics::record_error(msg.to_string());
+            record_error(msg.to_string());
             return;
         }
         
-        // parse function code and response data
+        // parse response
         let response = match ReadResponse::parse(remaining) {
             Ok((_, resp)) => resp,
             Err(_) => {
-                Metrics::record_error("malformed pdu".to_string());
+                record_error("malformed pdu".to_string());
                 return;
             }
         };
         
         // build mqtt payload
         let payload = TelemetryPayload {
-            source: format!("modbus://plc:502"),
+            source: "modbus://plc:502".to_string(),
             unit_id: header.unit_id,
             function: match response.function {
                 FunctionCode::ReadHoldingRegisters => "read_holding_registers".to_string(),
@@ -76,30 +94,32 @@ impl Guest for GatewayComponent {
                     label: None,
                 }
             }).collect(),
-            timestamp: "2026-01-05T00:00:00Z".to_string(), // placeholder
+            timestamp: "2026-01-05T00:00:00Z".to_string(),
         };
         
         let json = payload.to_json();
         let json_size = json.len() as u64;
         
-        // publish to mqtt sink
+        // publish
         let topic = format!("ics/telemetry/unit_{}", header.unit_id);
-        if let Err(e) = mqtt_sink::publish(&topic, &json, 0) {
-            Metrics::record_error(format!("mqtt publish error: {}", e.message));
+        if let Err(e) = gateway::protocols::mqtt_sink::publish(&topic, &json, 0) {
+            record_error(format!("mqtt publish error: {}", e.message));
             return;
         }
         
-        // record successful processing
-        Metrics::record_frame(frame_size);
-        Metrics::record_outbound(json_size);
+        record_frame(frame_size);
+        record_outbound(json_size);
     }
 }
 
-// export the metrics interface implementation
-impl crate::bindings::exports::gateway::protocols::metrics::Guest for GatewayComponent {
-    fn get_stats() -> crate::bindings::exports::gateway::protocols::metrics::GatewayStats {
-        Metrics::get_snapshot()
+impl exports::gateway::protocols::metrics::Guest for Component {
+    fn get_stats() -> exports::gateway::protocols::metrics::GatewayStats {
+        exports::gateway::protocols::metrics::GatewayStats {
+            frames_processed: FRAMES_PROCESSED.with(|f| f.get()),
+            frames_invalid: FRAMES_INVALID.with(|f| f.get()),
+            bytes_in: BYTES_IN.with(|b| b.get()),
+            bytes_out: BYTES_OUT.with(|b| b.get()),
+            last_error: LAST_ERROR.with(|e| e.borrow().clone()),
+        }
     }
 }
-
-export!(GatewayComponent);
