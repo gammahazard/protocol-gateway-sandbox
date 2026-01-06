@@ -52,9 +52,9 @@
 | Component | Technology | Purpose |
 |-----------|------------|---------|
 | **Modbus Parser** | Rust → WASM | Memory-safe parsing of dangerous binary protocol |
-| **Host Runtime** | JavaScript (Node.js) | WASM loader with hot-standby redundancy |
+| **Host Runtime** | JavaScript (Node.js) | WASM loader with 2oo3 TMR voting (SIL 3 pattern) |
 | **Mock Sources** | JS Shims | Simulated PLC and MQTT broker |
-| **Dashboard** | Leptos → WASM | Real-time security console with redundancy visualization |
+| **Dashboard** | Leptos → WASM | Real-time security console with real WASM measurements |
 
 ### IEC 62443 Alignment
 

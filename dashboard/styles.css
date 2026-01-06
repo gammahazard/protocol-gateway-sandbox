@@ -83,6 +83,63 @@ body {
   font-size: 0.8rem;
 }
 
+/* ============================================================================
+ * real wasm metrics banner
+ * shows actual measured performance from browser webassembly apis
+ * ============================================================================ */
+.metrics-banner {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--bg-hover);
+}
+
+.metric-real,
+.metric-simulated {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.4rem 0.8rem;
+  border-radius: var(--radius-sm);
+  min-width: 100px;
+}
+
+.metric-real {
+  background: rgba(0, 255, 136, 0.08);
+  border: 1px solid rgba(0, 255, 136, 0.2);
+}
+
+.metric-simulated {
+  background: rgba(255, 170, 0, 0.08);
+  border: 1px solid rgba(255, 170, 0, 0.2);
+}
+
+.metric-label {
+  font-size: 0.6rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.metric-real .metric-value {
+  font-size: 0.9rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--accent-green);
+}
+
+.metric-simulated .metric-value {
+  font-size: 0.9rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--accent-yellow);
+}
+
 /* scenario context */
 .scenario-context {
   background: var(--bg-secondary);
@@ -254,6 +311,116 @@ body {
 
 .log-error {
   color: var(--accent-red);
+}
+
+/* ============================================================================
+ * python workers panel
+ * shows multiprocessing worker status: 1 active, 2 standby
+ * ============================================================================ */
+.workers-panel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-panel);
+  border-top: 1px solid var(--bg-hover);
+}
+
+.workers-label {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.worker-box {
+  width: 32px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--bg-hover);
+  transition: all 0.3s ease;
+}
+
+.worker-box.active {
+  background: rgba(0, 255, 136, 0.15);
+  border-color: var(--accent-green);
+  color: var(--accent-green);
+}
+
+.worker-box.idle {
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+}
+
+.worker-box.dead {
+  background: rgba(255, 68, 68, 0.15);
+  border-color: var(--accent-red);
+  color: var(--accent-red);
+  animation: pulse 1s infinite;
+}
+
+/* ============================================================================
+ * 2oo3 voting panel
+ * shows triple modular redundancy: 3 instances with majority voting
+ * ============================================================================ */
+.voting-panel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-panel);
+  border-top: 1px solid var(--bg-hover);
+}
+
+.voting-label {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+}
+
+.voting-panel .instance-box {
+  width: 32px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--bg-hover);
+  transition: all 0.3s ease;
+  padding: 0;
+  min-width: 32px;
+}
+
+.voting-panel .instance-box.healthy {
+  background: rgba(0, 255, 136, 0.15);
+  border-color: var(--accent-green);
+  color: var(--accent-green);
+}
+
+.voting-panel .instance-box.faulty {
+  background: rgba(255, 68, 68, 0.15);
+  border-color: var(--accent-red);
+  color: var(--accent-red);
+  animation: pulse 0.5s infinite;
+}
+
+.vote-result {
+  margin-left: auto;
+  font-size: 0.7rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--accent-green);
+  padding: 0.2rem 0.5rem;
+  background: rgba(0, 255, 136, 0.1);
+  border-radius: var(--radius-sm);
 }
 
 /* stats container - side by side */

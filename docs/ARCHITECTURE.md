@@ -115,63 +115,82 @@ If someone asks "why only two function codes?", the answer is:
 | Attack blast radius | Entire gateway | Single request |
 | Memory corruption | Heap corruption possible | Linear memory isolated |
 
-## Hot-Standby Redundancy
+## 2oo3 Triple Modular Redundancy (TMR)
 
 ### The Question
 
 > "Does WASM's fast restart (~8ms) eliminate the need for redundancy?"
 
-**Answer:** No — but it makes redundancy even faster.
+**Answer:** No — but we go beyond simple redundancy with **voting**.
 
-### Instance Pool Architecture
+### 2oo3 Architecture
 
-We apply industrial redundancy patterns (IEC 62439-3) at the software layer:
+We apply SIL 3 safety patterns (IEC 61508) at the software layer:
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
-│                         INSTANCE POOL                                  │
-│   ┌─────────────────┐        ┌─────────────────┐                       │
-│   │   INSTANCE 0    │        │   INSTANCE 1    │                       │
-│   │   (PRIMARY)     │   ←→   │   (STANDBY)     │                       │
-│   │   Active: ✓     │        │   Warm: ✓       │                       │
-│   └─────────────────┘        └─────────────────┘                       │
-│                                                                        │
-│   On crash: activeIndex swaps instantly (~100μs)                       │
-│   Failed instance rebuilds asynchronously (8ms, non-blocking)          │
+│                         2oo3 INSTANCE POOL                             │
+│   ┌───────────┐     ┌───────────┐     ┌───────────┐                   │
+│   │ INSTANCE 0│     │ INSTANCE 1│     │ INSTANCE 2│                   │
+│   │    ✓      │     │    ✓      │     │    ✗      │                   │
+│   └─────┬─────┘     └─────┬─────┘     └─────┬─────┘                   │
+│         │                 │                 │                          │
+│         └────────┬────────┴────────┬────────┘                          │
+│                  │     VOTER       │                                   │
+│                  │  2/3 agree ✓    │                                   │
+│                  └────────┬────────┘                                   │
+│                           ▼                                            │
+│                     Result: OK                                         │
+│                     Faulty: Instance 2 (rebuild async)                 │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Why This Matters
+### Why 2oo3 Over 1oo2
 
-| Metric | Cold Restart | Hot-Standby |
-|--------|--------------|-------------|
-| **Switchover time** | ~8ms | **~100μs** |
-| **Packets lost** | 1-2 at 1000/sec | **0** |
-| **Blocking** | Yes (instantiate) | No (pointer swap) |
-| **Rebuild** | Synchronous | Asynchronous |
+| Pattern | Instances | Fault Detection | Use Case |
+|---------|-----------|-----------------|----------|
+| **1oo2 (Hot-Standby)** | 2 | Crash only | General availability |
+| **2oo3 (Voting/TMR)** | 3 | Crash + wrong result | Safety-critical |
 
-### Comparison with Python Hot-Standby
+**Key advantage:** 2oo3 can detect *which* instance produced a wrong result, not just that one crashed. This matters for:
+- Byzantine faults (instance returns wrong data instead of crashing)
+- Transient errors (radiation, memory bit-flips in industrial environments)
 
-Python can also implement hot-standby (multiprocessing, pre-fork workers), but:
+### Industrial Redundancy Patterns
 
-| Metric | Python | WASM |
-|--------|--------|------|
-| **Memory per instance** | ~30-50 MB | ~1-2 MB |
-| **Switchover** | ~5ms (IPC) | ~100μs (same process) |
-| **Startup** | ~500ms | ~8ms |
+| SIL Level | Pattern | Used For | Our Implementation |
+|-----------|---------|----------|-------------------|
+| SIL 1 | 1oo1 | Monitoring | — |
+| SIL 2 | 1oo2D | Process control | — |
+| **SIL 3** | **2oo3** | **Emergency shutdown** | **WASM 2oo3 voting** |
+| SIL 4 | 2oo4 | Nuclear, aviation | — |
 
-WASM is faster because both instances live in the same process — no IPC overhead.
+### Comparison with Traditional Solutions
 
-### IEC 62439-3 Alignment
+| Solution | Fault Detection | Rebuild Time | Memory |
+|----------|----------------|--------------|--------|
+| **Python multiprocessing** | Crash only | ~500ms | ~30-50 MB/worker |
+| **Container restart** | Crash only | ~2-5s | Container overhead |
+| **PLC 2oo3 (Triconex)** | Voting | Hardware | Expensive |
+| **WASM 2oo3** | **Voting** | **~8ms** | **~2 MB/instance** |
 
-The hot-standby pattern mirrors industrial redundancy standards:
+### Voting Outcomes
 
-| IEC 62439-3 Principle | Our Implementation |
-|-----------------------|---------------------|
-| Parallel paths | Two WASM instances |
-| Zero switchover time | Index swap (~100μs) |
-| No data loss | Standby already warm |
-| Async recovery | Failed instance rebuilds in background |
+| Agreement | Action | Example |
+|-----------|--------|---------|
+| 3/3 (unanimous) | Use result, all healthy | Normal operation |
+| 2/3 (majority) | Use majority, rebuild faulty | Transient fault detected |
+| 0/3 (split) | Reject, critical error | All instances corrupted |
+
+### IEC 61508 Alignment
+
+| IEC 61508 Principle | Our Implementation |
+|---------------------|-------------------|
+| Triple redundancy | 3 WASM instances |
+| Majority voting | 2/3 must agree |
+| Fault isolation | Per-instance sandboxing |
+| Async recovery | Faulty instance rebuilds in background |
+
 
 ## Why WASM Over Traditional Industrial Solutions
 
