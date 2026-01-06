@@ -87,7 +87,7 @@ protocol-gateway-sandbox/
 │       │   └── function.rs # Function code handlers
 │       ├── mqtt/           # Payload builder
 │       │   └── payload.rs  # JSON serialization
-│       └── metrics.rs      # Gateway stats
+│       └── metrics_impl.rs # Gateway stats
 ├── host/                   # JavaScript runtime
 │   ├── runtime.js          # WASM loader + crash recovery
 │   ├── shim/
@@ -102,6 +102,8 @@ protocol-gateway-sandbox/
 │   ├── src/lib.rs          # Side-by-side Python vs WASM terminals
 │   └── styles.css          # Security console dark theme
 └── docs/
+    ├── ARCHITECTURE.md     # System design and rationale
+    └── SECURITY.md         # Security analysis and IEC 62443
 ```
 
 ## 🖥️ Dashboard Demo
