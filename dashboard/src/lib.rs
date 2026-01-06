@@ -274,32 +274,65 @@ pub fn App() -> impl IntoView {
             
             let healthy: Vec<u8> = (0..3).filter(|&i| i != faulty_idx).collect();
             
+            // immediately show the fault and voting (0ms downtime - parallel processing)
             set_wasm_logs.update(|logs| {
                 logs.push(LogEntry { level: "warn".into(), message: format!("[TRAP] Instance {} trapped on malformed input", faulty_idx) });
                 logs.push(LogEntry { level: "info".into(), message: format!("[VOTE] Instances {:?} agree, Instance {} disagrees", healthy, faulty_idx) });
                 logs.push(LogEntry { level: "success".into(), message: "[VOTE] Result: 2/3 majority - frame rejected safely".into() });
-                logs.push(LogEntry { level: "info".into(), message: format!("[REBUILD] Instance {} rebuilding... ({:.2}ms)", faulty_idx, wasm_instantiate_ms.get()) });
+                logs.push(LogEntry { level: "success".into(), message: "[OK] No downtime - 2/3 voting continues with healthy instances".into() });
             });
             
             set_vote_result.set(Some("2/3 AGREE".to_string()));
             set_wasm_rejected.update(|n| *n += 1);
             set_switchover_count.update(|n| *n += 1);
             
-            // simulate async rebuild
-            let rebuild_time = (wasm_instantiate_ms.get() * 10.0) as u64; // scaled for visibility
+            // show processing continues even during rebuild (with 2/3 instances)
             set_timeout(move || {
+                set_wasm_logs.update(|logs| {
+                    logs.push(LogEntry { level: "info".into(), message: "[RECV] Frame: Read Holding Registers".into() });
+                    logs.push(LogEntry { level: "success".into(), message: "[VOTE] 2/3 agree (1 rebuilding) → MQTT published".into() });
+                });
+                set_wasm_processed.update(|n| *n += 1);
+            }, std::time::Duration::from_millis(300));
+            
+            // actually rebuild with real timing
+            set_wasm_logs.update(|logs| {
+                logs.push(LogEntry { level: "info".into(), message: format!("[REBUILD] Instance {} rebuilding asynchronously...", faulty_idx) });
+            });
+            
+            // spawn async task to actually re-instantiate WASM and measure real time
+            spawn_local(async move {
+                let rebuild_start = now();
+                
+                // actually re-instantiate the wasm module (real operation!)
+                let array = js_sys::Uint8Array::from(MINIMAL_WASM);
+                let compile_promise = js_sys::WebAssembly::compile(&array.buffer());
+                if let Ok(module) = wasm_bindgen_futures::JsFuture::from(compile_promise).await {
+                    let instantiate_promise = js_sys::WebAssembly::instantiate_module(
+                        &module.unchecked_into(),
+                        &js_sys::Object::new()
+                    );
+                    let _ = wasm_bindgen_futures::JsFuture::from(instantiate_promise).await;
+                }
+                
+                let rebuild_time = now() - rebuild_start;
+                
+                // update state - instance is now healthy
                 let mut states = instance_states.get();
                 states[faulty_idx as usize] = InstanceState::Healthy;
                 set_instance_states.set(states);
                 set_faulty_instance.set(None);
                 
                 set_wasm_logs.update(|logs| {
-                    logs.push(LogEntry { level: "success".into(), message: format!("[OK] Instance {} rebuilt - pool fully healthy", faulty_idx) });
+                    logs.push(LogEntry { 
+                        level: "success".into(), 
+                        message: format!("[OK] Instance {} rebuilt in {:.2}ms (real) - pool fully healthy", faulty_idx, rebuild_time) 
+                    });
                 });
-            }, std::time::Duration::from_millis(rebuild_time.max(500)));
+            });
             
-            // wasm continues processing while python restarts
-            for delay in [1000u64, 2000, 3000] {
+            // continue processing with 2/3 instances
+            for delay in [800u64, 1500, 2200] {
                 set_timeout(move || {
                     set_wasm_logs.update(|logs| {
                         logs.push(LogEntry { level: "info".into(), message: "[RECV] Frame: Read Holding Registers".into() });
