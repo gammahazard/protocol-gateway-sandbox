@@ -1,5 +1,5 @@
 {
-    "buildCommand": "cd dashboard && trunk build --release --public-url /",
+    "buildCommand": ". $HOME/.cargo/env && cd dashboard && trunk build --release --public-url /",
     "outputDirectory": "dashboard/dist",
     "installCommand": "curl https://sh.rustup.rs -sSf | sh -s -- -y && . $HOME/.cargo/env && cargo install trunk wasm-bindgen-cli && rustup target add wasm32-unknown-unknown",
     "framework": null
