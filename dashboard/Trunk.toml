@@ -1,0 +1,17 @@
+# dashboard/Trunk.toml
+# trunk build configuration for the leptos dashboard
+# 
+# this configures the local dev server. the addresses field replaces
+# the deprecated address field to avoid warnings.
+
+[serve]
+# bind to localhost only (not exposed to network)
+addresses = ["127.0.0.1"]
+port = 8080
+
+# auto-open browser on trunk serve
+open = true
+
+[build]
+# output directory (default is dist/)
+dist = "dist"
