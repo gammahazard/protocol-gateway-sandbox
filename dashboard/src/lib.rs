@@ -1,5 +1,5 @@
 // dashboard/src/lib.rs
-// protocol gateway sandbox - leptos security console dashboard.
+// protocol gateway sandbox - security console dashboard
 // dual terminal view: python crashes and restarts, wasm never crashes.
 
 #![allow(unused)]
@@ -7,94 +7,143 @@
 use leptos::*;
 use wasm_bindgen::prelude::*;
 
-// main app component
+#[derive(Clone)]
+struct LogEntry {
+    level: String,
+    message: String,
+}
+
+// attack config
+struct AttackConfig {
+    name: &'static str,
+    restart_time: i32,
+    error_msg: &'static str,
+    bytes_corrupted: u32,
+}
+
+fn get_attack_config(attack: &str) -> AttackConfig {
+    match attack {
+        "bufferOverflow" => AttackConfig {
+            name: "Buffer Overflow",
+            restart_time: 90,
+            error_msg: "MemoryError: heap corruption at 0x7fff42",
+            bytes_corrupted: 2048,
+        },
+        "illegalFunction" => AttackConfig {
+            name: "Illegal Function Code 0xFF",
+            restart_time: 75,
+            error_msg: "ValueError: unsupported function code 0xFF",
+            bytes_corrupted: 512,
+        },
+        "truncatedHeader" => AttackConfig {
+            name: "Truncated Header (3 bytes)",
+            restart_time: 60,
+            error_msg: "struct.error: unpack requires 7 bytes, got 3",
+            bytes_corrupted: 256,
+        },
+        _ => AttackConfig {
+            name: "Random Garbage",
+            restart_time: 45,
+            error_msg: "UnicodeDecodeError: invalid byte 0xfe",
+            bytes_corrupted: 128,
+        },
+    }
+}
+
 #[component]
 pub fn App() -> impl IntoView {
-    // gateway state
-    let (frames_processed, set_frames_processed) = create_signal(0u64);
-    let (frames_invalid, set_frames_invalid) = create_signal(0u64);
-    let (wasm_recovery_time, set_wasm_recovery_time) = create_signal(0.0f64);
+    // consistent stats for both gateways
+    let (python_processed, set_python_processed) = create_signal(0u64);
+    let (python_rejected, set_python_rejected) = create_signal(0u64);
+    let (python_downtime, set_python_downtime) = create_signal(0i32);
     
-    // terminal logs - separate for each gateway
+    let (wasm_processed, set_wasm_processed) = create_signal(0u64);
+    let (wasm_rejected, set_wasm_rejected) = create_signal(0u64);
+    let (wasm_downtime, set_wasm_downtime) = create_signal(0i32); // always 0
+    
+    // terminal logs
     let (python_logs, set_python_logs) = create_signal(Vec::<LogEntry>::new());
     let (wasm_logs, set_wasm_logs) = create_signal(Vec::<LogEntry>::new());
     
-    // python restart state
+    // state
     let (python_crashed, set_python_crashed) = create_signal(false);
-    let (python_restart_countdown, set_python_restart_countdown) = create_signal(0i32);
+    let (python_countdown, set_python_countdown) = create_signal(0i32);
     let (is_running, set_is_running) = create_signal(false);
     let (selected_attack, set_selected_attack) = create_signal("bufferOverflow".to_string());
+    let (total_bytes_processed, set_total_bytes_processed) = create_signal(0u64);
     
-    // helper to add python log
-    let add_python_log = move |level: &str, message: &str| {
-        set_python_logs.update(|logs| {
-            logs.push(LogEntry { level: level.to_string(), message: message.to_string() });
-            if logs.len() > 50 { logs.remove(0); }
-        });
-    };
-    
-    // helper to add wasm log
-    let add_wasm_log = move |level: &str, message: &str| {
-        set_wasm_logs.update(|logs| {
-            logs.push(LogEntry { level: level.to_string(), message: message.to_string() });
-            if logs.len() > 50 { logs.remove(0); }
-        });
-    };
-    
-    // trigger chaos attack
     let trigger_chaos = move |_| {
         set_is_running.set(true);
         let attack = selected_attack.get();
+        let config = get_attack_config(&attack);
         
-        // both gateways receive malformed packet
-        add_python_log("info", &format!("$ ./gateway.py --port 502"));
-        add_python_log("info", "Modbus Gateway started on port 502");
-        add_python_log("info", "Waiting for connections...");
-        add_python_log("info", &format!("Received frame: {} attack", attack));
+        // simulate some normal processing first
+        let frames_before = 5;
+        let bytes_per_frame = 19u64; // modbus frame size
         
-        add_wasm_log("info", "$ ./protocol-gateway --port 502");
-        add_wasm_log("success", "WASM sandbox initialized");
-        add_wasm_log("info", "Modbus Gateway started on port 502");
-        add_wasm_log("info", "Waiting for connections...");
-        add_wasm_log("info", &format!("Received frame: {} attack", attack));
+        // python logs - detailed startup
+        set_python_logs.set(vec![
+            LogEntry { level: "info".into(), message: "$ python gateway.py --port 502".into() },
+            LogEntry { level: "info".into(), message: "[INFO] Initializing struct-based parser...".into() },
+            LogEntry { level: "success".into(), message: "[OK] Modbus Gateway listening on 0.0.0.0:502".into() },
+            LogEntry { level: "info".into(), message: format!("[INFO] Processed {} frames ({} bytes)", frames_before, frames_before * bytes_per_frame) },
+            LogEntry { level: "info".into(), message: format!("[RECV] Incoming: {} ({} bytes)", config.name, config.bytes_corrupted) },
+        ]);
+        set_python_processed.update(|n| *n += frames_before);
         
-        // simulate async processing
+        // wasm logs - detailed startup
+        set_wasm_logs.set(vec![
+            LogEntry { level: "info".into(), message: "$ ./protocol-gateway --port 502".into() },
+            LogEntry { level: "success".into(), message: "[OK] WASM sandbox initialized (mem: 64KB)".into() },
+            LogEntry { level: "success".into(), message: "[OK] nom parser ready".into() },
+            LogEntry { level: "info".into(), message: format!("[INFO] Processed {} frames ({} bytes)", frames_before, frames_before * bytes_per_frame) },
+            LogEntry { level: "info".into(), message: format!("[RECV] Incoming: {} ({} bytes)", config.name, config.bytes_corrupted) },
+        ]);
+        set_wasm_processed.update(|n| *n += frames_before);
+        set_total_bytes_processed.update(|n| *n += frames_before * bytes_per_frame * 2);
+        
         set_timeout(
             move || {
-                // python crashes immediately
-                add_python_log("error", "struct.error: unpack requires a buffer of 7 bytes");
-                add_python_log("error", "Traceback (most recent call last):");
-                add_python_log("error", "  File \"gateway.py\", line 42");
-                add_python_log("error", "    header = struct.unpack('>HHHB', data[:7])");
-                add_python_log("error", "💥 FATAL: Process terminated with exit code 1");
+                let config = get_attack_config(&attack);
+                let telemetry_lost = config.restart_time as u64 * bytes_per_frame;
+                
+                // python crashes with detailed error
+                set_python_logs.update(|logs| {
+                    logs.push(LogEntry { level: "error".into(), message: format!("[ERROR] {}", config.error_msg) });
+                    logs.push(LogEntry { level: "error".into(), message: "Traceback (most recent call last):".into() });
+                    logs.push(LogEntry { level: "error".into(), message: "  File \"gateway.py\", line 42, in parse_mbap".into() });
+                    logs.push(LogEntry { level: "error".into(), message: "    header = struct.unpack('>HHHB', data[:7])".into() });
+                    logs.push(LogEntry { level: "error".into(), message: format!("💥 FATAL: exit(1) | Restart: {}s | Est. data loss: {} bytes", config.restart_time, telemetry_lost) });
+                });
                 set_python_crashed.set(true);
+                set_python_rejected.update(|n| *n += 1);
+                set_python_downtime.update(|n| *n += config.restart_time);
+                set_python_countdown.set(config.restart_time);
                 
-                // start python restart countdown (60 seconds simulated as 6 ticks)
-                set_python_restart_countdown.set(60);
-                start_python_restart(set_python_restart_countdown, set_python_crashed, add_python_log);
+                simulate_restart(set_python_logs, set_python_crashed, set_python_countdown, config.restart_time, telemetry_lost);
                 
-                // wasm handles gracefully and continues
-                add_wasm_log("warn", "nom::Err::Incomplete(Size(7))");
-                add_wasm_log("info", "Frame validation failed: truncated header");
-                set_frames_invalid.update(|n| *n += 1);
+                // wasm handles gracefully - detailed
+                let recovery_ms = 1.5 + (js_sys::Math::random() * 3.0);
+                set_wasm_logs.update(|logs| {
+                    logs.push(LogEntry { level: "warn".into(), message: format!("[WARN] nom::Err::Incomplete | Expected: 7 bytes, Got: {}", config.bytes_corrupted.min(6)) });
+                    logs.push(LogEntry { level: "info".into(), message: "[INFO] Frame rejected - invalid MBAP header".into() });
+                    logs.push(LogEntry { level: "success".into(), message: format!("[OK] Sandbox trap handled in {:.2}ms", recovery_ms) });
+                    logs.push(LogEntry { level: "success".into(), message: "[OK] Parser state reset - ready for next frame".into() });
+                });
+                set_wasm_rejected.update(|n| *n += 1);
+                // wasm_downtime stays at 0
                 
-                let recovery = 2.0 + (js_sys::Math::random() * 4.0);
-                set_wasm_recovery_time.set(recovery);
-                add_wasm_log("success", &format!("Sandbox recovered in {:.2}ms", recovery));
-                add_wasm_log("success", "✅ Gateway operational - continuing to accept frames");
-                
-                // simulate wasm continuing to process normal frames
-                set_timeout(move || {
-                    add_wasm_log("info", "Received frame: normal read request");
-                    add_wasm_log("success", "Frame processed → published to MQTT");
-                    set_frames_processed.update(|n| *n += 1);
-                }, std::time::Duration::from_millis(1000));
-                
-                set_timeout(move || {
-                    add_wasm_log("info", "Received frame: normal read request");
-                    add_wasm_log("success", "Frame processed → published to MQTT");
-                    set_frames_processed.update(|n| *n += 1);
-                }, std::time::Duration::from_millis(2000));
+                // wasm continues processing while python is down
+                for delay in [1500, 3000, 4500] {
+                    set_timeout(move || {
+                        set_wasm_logs.update(|logs| {
+                            logs.push(LogEntry { level: "info".into(), message: format!("[RECV] Frame: Read Holding Registers (19 bytes)") });
+                            logs.push(LogEntry { level: "success".into(), message: "[OK] → MQTT: ics/telemetry/unit/1".into() });
+                        });
+                        set_wasm_processed.update(|n| *n += 1);
+                        set_total_bytes_processed.update(|n| *n += bytes_per_frame);
+                    }, std::time::Duration::from_millis(delay));
+                }
                 
                 set_is_running.set(false);
             },
@@ -102,56 +151,128 @@ pub fn App() -> impl IntoView {
         );
     };
     
-    // reset demo
     let reset_demo = move |_| {
         set_python_crashed.set(false);
-        set_python_restart_countdown.set(0);
+        set_python_countdown.set(0);
         set_python_logs.set(Vec::new());
         set_wasm_logs.set(Vec::new());
-        set_frames_processed.set(0);
-        set_frames_invalid.set(0);
+        set_python_processed.set(0);
+        set_python_rejected.set(0);
+        set_python_downtime.set(0);
+        set_wasm_processed.set(0);
+        set_wasm_rejected.set(0);
+        set_total_bytes_processed.set(0);
     };
     
     view! {
         <div class="dashboard">
             <Header/>
-            
             <ScenarioContext/>
             
             <div class="terminals-container">
-                <TerminalPanel
-                    title="🐍 Python Gateway"
-                    subtitle="Traditional struct.unpack parser"
-                    logs=python_logs
-                    crashed=python_crashed
-                    restart_countdown=python_restart_countdown
-                    terminal_class="python-terminal"
-                />
+                <div class="terminal-panel python-terminal">
+                    <div class="terminal-header">
+                        <div class="terminal-title">"🐍 Python Gateway"</div>
+                        <div class="terminal-subtitle">"struct.unpack"</div>
+                        <div class="terminal-status"
+                            class:crashed=move || python_crashed.get()
+                            class:online=move || !python_crashed.get()
+                        >
+                            {move || {
+                                if python_crashed.get() {
+                                    let c = python_countdown.get();
+                                    if c > 0 { format!("⏳ {}s", c) } else { "🔴 DOWN".into() }
+                                } else { "🟢 UP".into() }
+                            }}
+                        </div>
+                    </div>
+                    <div class="terminal-output">
+                        {move || {
+                            let entries = python_logs.get();
+                            if entries.is_empty() {
+                                view! { <div class="terminal-placeholder">"$ ready"</div> }.into_view()
+                            } else {
+                                entries.into_iter().map(|e| {
+                                    view! { <div class=format!("log-line log-{}", e.level)>{e.message}</div> }
+                                }).collect_view()
+                            }
+                        }}
+                    </div>
+                </div>
                 
-                <TerminalPanel
-                    title="🦀 WASM Gateway"
-                    subtitle="Sandboxed nom parser"
-                    logs=wasm_logs
-                    crashed=Signal::derive(move || false)
-                    restart_countdown=Signal::derive(move || 0)
-                    terminal_class="wasm-terminal"
-                />
+                <div class="terminal-panel wasm-terminal">
+                    <div class="terminal-header">
+                        <div class="terminal-title">"🦀 WASM Gateway"</div>
+                        <div class="terminal-subtitle">"nom parser"</div>
+                        <div class="terminal-status online">"🟢 UP"</div>
+                    </div>
+                    <div class="terminal-output">
+                        {move || {
+                            let entries = wasm_logs.get();
+                            if entries.is_empty() {
+                                view! { <div class="terminal-placeholder">"$ ready"</div> }.into_view()
+                            } else {
+                                entries.into_iter().map(|e| {
+                                    view! { <div class=format!("log-line log-{}", e.level)>{e.message}</div> }
+                                }).collect_view()
+                            }
+                        }}
+                    </div>
+                </div>
             </div>
             
-            <div class="controls-row">
-                <StatsPanel
-                    frames_processed=frames_processed
-                    frames_invalid=frames_invalid
-                    recovery_time=wasm_recovery_time
-                />
+            <div class="stats-container">
+                <div class="panel stats-panel python-stats">
+                    <h2>"🐍 Python Stats"</h2>
+                    <div class="stats-row">
+                        <div class="stat-item">
+                            <span class="stat-value">{python_processed}</span>
+                            <span class="stat-label">"Processed"</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value error">{python_rejected}</span>
+                            <span class="stat-label">"Rejected"</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value error">{python_downtime}"s"</span>
+                            <span class="stat-label">"Downtime"</span>
+                        </div>
+                    </div>
+                </div>
                 
-                <ChaosPanel
-                    selected_attack=selected_attack
-                    set_selected_attack=set_selected_attack
-                    is_running=is_running
-                    on_trigger=trigger_chaos
-                    on_reset=reset_demo
-                />
+                <div class="panel stats-panel wasm-stats">
+                    <h2>"🦀 WASM Stats"</h2>
+                    <div class="stats-row">
+                        <div class="stat-item">
+                            <span class="stat-value">{wasm_processed}</span>
+                            <span class="stat-label">"Processed"</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value warn">{wasm_rejected}</span>
+                            <span class="stat-label">"Rejected"</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">{wasm_downtime}"s"</span>
+                            <span class="stat-label">"Downtime"</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="panel chaos-panel">
+                <h2>"☠️ Attack Vector"</h2>
+                <div class="chaos-controls">
+                    <select class="attack-select" on:change=move |ev| set_selected_attack.set(event_target_value(&ev))>
+                        <option value="bufferOverflow">"Buffer Overflow (90s restart)"</option>
+                        <option value="illegalFunction">"Illegal Function (75s restart)"</option>
+                        <option value="truncatedHeader">"Truncated Header (60s restart)"</option>
+                        <option value="randomGarbage">"Random Garbage (45s restart)"</option>
+                    </select>
+                    <button class="chaos-button" disabled=is_running on:click=move |_| trigger_chaos(())>
+                        {move || if is_running.get() { "⏳..." } else { "🎯 Attack" }}
+                    </button>
+                    <button class="reset-button" on:click=move |_| reset_demo(())>"🔄"</button>
+                </div>
             </div>
             
             <Footer/>
@@ -159,41 +280,35 @@ pub fn App() -> impl IntoView {
     }
 }
 
-// start python restart countdown
-fn start_python_restart(
-    set_countdown: WriteSignal<i32>,
+fn simulate_restart(
+    set_logs: WriteSignal<Vec<LogEntry>>,
     set_crashed: WriteSignal<bool>,
-    add_log: impl Fn(&str, &str) + Copy + 'static,
+    set_countdown: WriteSignal<i32>,
+    total: i32,
+    bytes_lost: u64,
 ) {
-    // tick every second (simulated - we'll do faster for demo)
-    fn tick(remaining: i32, set_countdown: WriteSignal<i32>, set_crashed: WriteSignal<bool>, add_log: impl Fn(&str, &str) + Copy + 'static) {
+    fn tick(remaining: i32, set_logs: WriteSignal<Vec<LogEntry>>, set_crashed: WriteSignal<bool>, set_countdown: WriteSignal<i32>, bytes_lost: u64) {
         if remaining <= 0 {
-            add_log("info", "Restarting gateway process...");
-            add_log("info", "$ ./gateway.py --port 502");
-            add_log("success", "Modbus Gateway started on port 502");
-            add_log("info", "⚠️  Lost 60 seconds of telemetry data");
+            set_logs.update(|logs| {
+                logs.push(LogEntry { level: "info".into(), message: "[INFO] systemd: Restarting gateway.service...".into() });
+                logs.push(LogEntry { level: "success".into(), message: "[OK] Gateway back online".into() });
+                logs.push(LogEntry { level: "warn".into(), message: format!("[WARN] Total telemetry lost: {} bytes", bytes_lost) });
+            });
             set_crashed.set(false);
             set_countdown.set(0);
             return;
         }
-        
         set_countdown.set(remaining);
-        if remaining == 60 {
-            add_log("warn", &format!("Restarting in {}s...", remaining));
-        } else if remaining % 15 == 0 {
-            add_log("warn", &format!("Restarting in {}s...", remaining));
+        if remaining % 20 == 0 || remaining <= 10 {
+            set_logs.update(|logs| {
+                logs.push(LogEntry { level: "warn".into(), message: format!("[WAIT] Restart in {}s...", remaining) });
+            });
         }
-        
-        set_timeout(
-            move || tick(remaining - 5, set_countdown, set_crashed, add_log),
-            std::time::Duration::from_millis(500), // 500ms = simulated 5 seconds
-        );
+        set_timeout(move || tick(remaining - 5, set_logs, set_crashed, set_countdown, bytes_lost), std::time::Duration::from_millis(350));
     }
-    
-    tick(60, set_countdown, set_crashed, add_log);
+    tick(total, set_logs, set_crashed, set_countdown, bytes_lost);
 }
 
-// header component
 #[component]
 fn Header() -> impl IntoView {
     view! {
@@ -202,12 +317,11 @@ fn Header() -> impl IntoView {
                 <span class="logo-icon">"🔒"</span>
                 <h1>"Protocol Gateway Sandbox"</h1>
             </div>
-            <p class="subtitle">"WASM Crash Containment Demo - Python vs Rust"</p>
+            <p class="subtitle">"WASM Crash Containment"</p>
         </header>
     }
 }
 
-// scenario context
 #[component]
 fn ScenarioContext() -> impl IntoView {
     view! {
@@ -227,138 +341,17 @@ fn ScenarioContext() -> impl IntoView {
                     <span class="node-icon">"🔄"</span>
                     <span class="node-label">"Gateway"</span>
                 </div>
+                <span class="diagram-arrow">"→"</span>
+                <div class="diagram-node mqtt">
+                    <span class="node-icon">"☁️"</span>
+                    <span class="node-label">"MQTT"</span>
+                </div>
             </div>
-            <p class="scenario-description">
-                "Watch what happens when both gateways receive the same malicious Modbus frame."
-            </p>
+            <p class="scenario-description">"Same attack → Python crashes, WASM continues"</p>
         </section>
     }
 }
 
-// terminal panel component
-#[component]
-fn TerminalPanel(
-    title: &'static str,
-    subtitle: &'static str,
-    logs: ReadSignal<Vec<LogEntry>>,
-    crashed: Signal<bool>,
-    restart_countdown: Signal<i32>,
-    terminal_class: &'static str,
-) -> impl IntoView {
-    view! {
-        <div class=format!("terminal-panel {}", terminal_class)>
-            <div class="terminal-header">
-                <div class="terminal-title">{title}</div>
-                <div class="terminal-subtitle">{subtitle}</div>
-                <div class="terminal-status" class:crashed=crashed class:online=move || !crashed.get()>
-                    {move || if crashed.get() {
-                        let countdown = restart_countdown.get();
-                        if countdown > 0 {
-                            format!("⏳ RESTARTING ({countdown}s)")
-                        } else {
-                            "🔴 CRASHED".to_string()
-                        }
-                    } else {
-                        "🟢 ONLINE".to_string()
-                    }}
-                </div>
-            </div>
-            <div class="terminal-output">
-                {move || {
-                    let entries = logs.get();
-                    if entries.is_empty() {
-                        view! {
-                            <div class="terminal-placeholder">
-                                "$ waiting for attack simulation..."
-                            </div>
-                        }.into_view()
-                    } else {
-                        entries.into_iter().map(|entry| {
-                            let class = format!("log-line log-{}", entry.level);
-                            view! {
-                                <div class=class>{entry.message.clone()}</div>
-                            }
-                        }).collect_view()
-                    }
-                }}
-            </div>
-        </div>
-    }
-}
-
-// stats panel
-#[component]
-fn StatsPanel(
-    frames_processed: ReadSignal<u64>,
-    frames_invalid: ReadSignal<u64>,
-    recovery_time: ReadSignal<f64>,
-) -> impl IntoView {
-    view! {
-        <section class="panel stats-panel">
-            <h2>"📊 WASM Gateway Stats"</h2>
-            <div class="stats-row">
-                <div class="stat-item">
-                    <span class="stat-value">{frames_processed}</span>
-                    <span class="stat-label">"Processed"</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-value error">{frames_invalid}</span>
-                    <span class="stat-label">"Rejected"</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-value">{move || format!("{:.1}ms", recovery_time.get())}</span>
-                    <span class="stat-label">"Recovery"</span>
-                </div>
-            </div>
-        </section>
-    }
-}
-
-// chaos panel
-#[component]
-fn ChaosPanel(
-    selected_attack: ReadSignal<String>,
-    set_selected_attack: WriteSignal<String>,
-    is_running: ReadSignal<bool>,
-    on_trigger: impl Fn(()) + 'static,
-    on_reset: impl Fn(()) + 'static,
-) -> impl IntoView {
-    let attacks = vec![
-        ("bufferOverflow", "Buffer Overflow"),
-        ("truncatedHeader", "Truncated Header"),
-        ("illegalFunction", "Illegal Function Code"),
-        ("randomGarbage", "Random Garbage"),
-    ];
-    
-    view! {
-        <section class="panel chaos-panel">
-            <h2>"☠️ Attack Vector"</h2>
-            <select class="attack-select" on:change=move |ev| {
-                set_selected_attack.set(event_target_value(&ev));
-            }>
-                {attacks.into_iter().map(|(id, name)| {
-                    view! { <option value=id selected=move || selected_attack.get() == id>{name}</option> }
-                }).collect_view()}
-            </select>
-            
-            <div class="button-row">
-                <button
-                    class="chaos-button"
-                    disabled=is_running
-                    on:click=move |_| on_trigger(())
-                >
-                    {move || if is_running.get() { "⏳ Attacking..." } else { "🎯 Launch Attack" }}
-                </button>
-                
-                <button class="reset-button" on:click=move |_| on_reset(())>
-                    "🔄 Reset"
-                </button>
-            </div>
-        </section>
-    }
-}
-
-// footer
 #[component]
 fn Footer() -> impl IntoView {
     view! {
@@ -373,26 +366,14 @@ fn Footer() -> impl IntoView {
     }
 }
 
-// log entry
-#[derive(Clone)]
-struct LogEntry {
-    level: String,
-    message: String,
-}
-
-// timeout helper
-fn set_timeout<F>(callback: F, duration: std::time::Duration)
-where
-    F: FnOnce() + 'static,
-{
+fn set_timeout<F: FnOnce() + 'static>(cb: F, dur: std::time::Duration) {
     use wasm_bindgen::closure::Closure;
     let window = web_sys::window().unwrap();
-    let cb = Closure::once(callback);
+    let closure = Closure::once(cb);
     window.set_timeout_with_callback_and_timeout_and_arguments_0(
-        cb.as_ref().unchecked_ref(),
-        duration.as_millis() as i32,
+        closure.as_ref().unchecked_ref(), dur.as_millis() as i32
     ).unwrap();
-    cb.forget();
+    closure.forget();
 }
 
 #[wasm_bindgen(start)]
