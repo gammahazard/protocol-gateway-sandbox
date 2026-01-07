@@ -121,6 +121,16 @@ The dashboard shows **two live terminals side-by-side** with **real WASM measure
 | ~500ms worker spawn (simulated) | **~4ms instantiate (real)** |
 | No fault isolation | Faulty instance identified |
 
+### Attack Demo: Buffer Overflow
+
+<p align="center">
+  <img src="docs/assets/attack_buffer_overflow.png" alt="Buffer Overflow Attack Demo" width="800"/>
+</p>
+
+**Key observations:**
+- **Python:** 500ms downtime, frames lost during crash
+- **WASM:** 0ms downtime, 2/3 voting continues, instance rebuilt in ~7ms (real)
+
 ### Real vs Simulated Metrics
 
 | Metric | Source |
