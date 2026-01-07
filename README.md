@@ -14,6 +14,8 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/status-completed-brightgreen" alt="Status"/>
+  <img src="https://img.shields.io/badge/tests-13%20passing-brightgreen" alt="Tests"/>
+  <a href="https://protocol-gateway-sandbox.vercel.app"><img src="https://img.shields.io/badge/demo-live-blue" alt="Demo"/></a>
   <img src="https://img.shields.io/badge/license-MIT-blue" alt="License"/>
 </p>
 
@@ -259,6 +261,18 @@ The same WASM component runs anywhere there's a runtime:
 | ESP32 | 520KB RAM | WAMR interpreter mode |
 
 **Key insight:** Write once, deploy to browser (demo), server (test), and edge device (production) with zero code changes.
+
+### 📡 Size & Bandwidth Comparison
+
+For remote deployments with limited connectivity (offshore rigs, remote substations):
+
+| Package | Size | Transfer @ 1 Mbps |
+|---------|------|-------------------|
+| **WASM Component** | ~68 KB | **<1 second** |
+| Docker (Python) | ~500 MB | ~67 minutes |
+| Docker (ML stack) | ~2 GB | ~4.5 hours |
+
+*This is why WASM matters for remote ICS environments.*
 
 ## 📚 Documentation
 
