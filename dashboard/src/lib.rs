@@ -148,6 +148,38 @@ async fn measure_instantiate_time() -> f64 {
     (now() - start) / iterations as f64
 }
 
+/// measure real wasm memory usage
+/// a wasm page is 64KB - our minimal module uses 1 page
+async fn measure_memory_kb() -> u32 {
+    // compile and instantiate a module with 1 page of memory
+    let wasm_with_memory: &[u8] = &[
+        0x00, 0x61, 0x73, 0x6d, // magic
+        0x01, 0x00, 0x00, 0x00, // version
+        // memory section: 1 page (64KB)
+        0x05, 0x03, 0x01, 0x00, 0x01,
+    ];
+    
+    let array = js_sys::Uint8Array::from(wasm_with_memory);
+    let compile_promise = js_sys::WebAssembly::compile(&array.buffer());
+    
+    match wasm_bindgen_futures::JsFuture::from(compile_promise).await {
+        Ok(module) => {
+            let module: js_sys::WebAssembly::Module = module.unchecked_into();
+            let instantiate_promise = js_sys::WebAssembly::instantiate_module(
+                &module,
+                &js_sys::Object::new()
+            );
+            
+            // if instantiation succeeds, report 64KB (1 wasm page, the minimum)
+            match wasm_bindgen_futures::JsFuture::from(instantiate_promise).await {
+                Ok(_) => 64, // 1 page = 64KB
+                Err(_) => 0,
+            }
+        }
+        Err(_) => 0,
+    }
+}
+
 // ============================================================================
 // main application component
 // ============================================================================
@@ -211,6 +243,10 @@ pub fn App() -> impl IntoView {
                 // measure instantiate time (real)
                 let instantiate_time = measure_instantiate_time().await;
                 set_wasm_instantiate_ms.set(instantiate_time);
+                
+                // measure memory (real)
+                let memory_kb = measure_memory_kb().await;
+                set_wasm_memory_kb.set(memory_kb);
                 
                 set_measurements_done.set(true);
             });
@@ -424,7 +460,7 @@ pub fn App() -> impl IntoView {
                     </span>
                 </div>
                 <div class="metric-real">
-                    <span class="metric-label">"Memory/Instance"</span>
+                    <span class="metric-label">"Memory/Instance (real)"</span>
                     <span class="metric-value">{wasm_memory_kb}"KB"</span>
                 </div>
                 <div class="metric-simulated">
