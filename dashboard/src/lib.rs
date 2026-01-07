@@ -216,20 +216,31 @@ pub fn App() -> impl IntoView {
         set_is_running.set(true);
         let attack = selected_attack.get();
         let config = get_attack_config(&attack);
+        let current_active = python_active_worker.get();
         
-        // pre-attack: show normal processing
-        set_python_logs.set(vec![
-            LogEntry { level: "info".into(), message: "$ python gateway.py --workers 3".into() },
-            LogEntry { level: "success".into(), message: "[OK] Worker pool: 1 active, 2 standby".into() },
-            LogEntry { level: "info".into(), message: "[RECV] Processing frames...".into() },
-        ]);
+        // if first attack (logs empty), show startup
+        if python_logs.get().is_empty() {
+            set_python_logs.set(vec![
+                LogEntry { level: "info".into(), message: "$ python gateway.py --workers 3".into() },
+                LogEntry { level: "success".into(), message: "[OK] Worker pool: 1 active, 2 standby".into() },
+            ]);
+        }
         
-        set_wasm_logs.set(vec![
-            LogEntry { level: "info".into(), message: "$ ./gateway --mode 2oo3".into() },
-            LogEntry { level: "success".into(), message: "[OK] 2oo3 TMR: 3 instances initialized".into() },
-            LogEntry { level: "info".into(), message: format!("[METRICS] Instantiate: {:.2}ms (real)", wasm_instantiate_ms.get()) },
-            LogEntry { level: "info".into(), message: "[RECV] Processing frames...".into() },
-        ]);
+        if wasm_logs.get().is_empty() {
+            set_wasm_logs.set(vec![
+                LogEntry { level: "info".into(), message: "$ ./gateway --mode 2oo3".into() },
+                LogEntry { level: "success".into(), message: "[OK] 2oo3 TMR: 3 instances initialized".into() },
+                LogEntry { level: "info".into(), message: format!("[METRICS] Instantiate: {:.2}ms (real)", wasm_instantiate_ms.get()) },
+            ]);
+        }
+        
+        // show incoming frames
+        set_python_logs.update(|logs| {
+            logs.push(LogEntry { level: "info".into(), message: "[RECV] Processing frames...".into() });
+        });
+        set_wasm_logs.update(|logs| {
+            logs.push(LogEntry { level: "info".into(), message: "[RECV] Processing frames...".into() });
+        });
         
         set_python_processed.update(|n| *n += 5);
         set_wasm_processed.update(|n| *n += 5);
@@ -237,16 +248,23 @@ pub fn App() -> impl IntoView {
         // after 800ms: attack arrives
         set_timeout(move || {
             let config = get_attack_config(&attack);
+            let current_active = current_active;
             
             // ================================================================
-            // python: worker crashes, needs restart
+            // python: CURRENT ACTIVE worker crashes, next one takes over
             // ================================================================
+            let next_active = (current_active + 1) % 3;
+            
             set_python_logs.update(|logs| {
                 logs.push(LogEntry { level: "error".into(), message: format!("[CRASH] {}", config.error_msg) });
-                logs.push(LogEntry { level: "error".into(), message: "💥 Worker 0 died - spawning replacement...".into() });
+                logs.push(LogEntry { level: "error".into(), message: format!("💥 Worker {} died - Worker {} taking over...", current_active, next_active) });
             });
-            set_python_workers.set([false, true, true]); // worker 0 dead, workers 1+2 alive
-            set_python_active_worker.set(1);
+            
+            // mark current worker as dead, rest alive
+            let mut workers = [true, true, true];
+            workers[current_active as usize] = false;
+            set_python_workers.set(workers);
+            set_python_active_worker.set(next_active);
             set_python_restarting.set(true);
             set_python_rejected.update(|n| *n += 1);
             
@@ -259,6 +277,7 @@ pub fn App() -> impl IntoView {
                 set_python_workers,
                 set_python_downtime_ms,
                 spawn_ms,
+                current_active,
             );
             
             // ================================================================
@@ -572,6 +591,7 @@ fn simulate_python_restart(
     set_workers: WriteSignal<[bool; 3]>,
     set_downtime: WriteSignal<u64>,
     spawn_ms: u32,
+    crashed_worker: u8,
 ) {
     let steps = 5;
     let step_ms = spawn_ms / steps;
@@ -586,11 +606,11 @@ fn simulate_python_restart(
             
             if is_done {
                 set_restarting.set(false);
-                set_workers.set([true, true, true]); // worker 0 respawned - all workers alive again
+                set_workers.set([true, true, true]); // all workers alive again
                 set_logs.update(|logs| {
                     logs.push(LogEntry { 
                         level: "success".into(), 
-                        message: format!("[OK] Worker 0 respawned ({}ms) - pool restored (W1 active, W0+W2 standby)", spawn_ms)
+                        message: format!("[OK] Worker {} respawned ({}ms) - pool restored", crashed_worker, spawn_ms)
                 });
             });
             } else {
