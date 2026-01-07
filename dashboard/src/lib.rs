@@ -439,6 +439,34 @@ pub fn App() -> impl IntoView {
     };
     
     // ========================================================================
+    // run all attacks in sequence
+    // ========================================================================
+    let run_all_attacks = move |_| {
+        set_is_running.set(true);
+        
+        // attack sequence with delays
+        let attacks = ["bufferOverflow", "illegalFunction", "truncatedHeader", "randomGarbage"];
+        
+        for (i, attack_name) in attacks.iter().enumerate() {
+            let attack = attack_name.to_string();
+            let delay = (i as u64) * 3500; // 3.5s between each attack
+            
+            set_timeout(move || {
+                set_selected_attack.set(attack);
+                // trigger the attack after a small delay for visual feedback
+                set_timeout(move || {
+                    trigger_attack(());
+                }, std::time::Duration::from_millis(200));
+            }, std::time::Duration::from_millis(delay));
+        }
+        
+        // set running to false after all attacks complete
+        set_timeout(move || {
+            set_is_running.set(false);
+        }, std::time::Duration::from_millis(4 * 3500 + 3000));
+    };
+    
+    // ========================================================================
     // view
     // ========================================================================
     view! {
@@ -609,6 +637,8 @@ pub fn App() -> impl IntoView {
                     <button 
                         class="attack-btn"
                         class:selected=move || selected_attack.get() == "bufferOverflow"
+                        class:running=move || selected_attack.get() == "bufferOverflow" && is_running.get()
+                        disabled=is_running
                         on:click=move |_| set_selected_attack.set("bufferOverflow".to_string())
                     >
                         "💥 Buffer Overflow"
@@ -616,6 +646,8 @@ pub fn App() -> impl IntoView {
                     <button 
                         class="attack-btn"
                         class:selected=move || selected_attack.get() == "illegalFunction"
+                        class:running=move || selected_attack.get() == "illegalFunction" && is_running.get()
+                        disabled=is_running
                         on:click=move |_| set_selected_attack.set("illegalFunction".to_string())
                     >
                         "🚫 Illegal Function"
@@ -623,6 +655,8 @@ pub fn App() -> impl IntoView {
                     <button 
                         class="attack-btn"
                         class:selected=move || selected_attack.get() == "truncatedHeader"
+                        class:running=move || selected_attack.get() == "truncatedHeader" && is_running.get()
+                        disabled=is_running
                         on:click=move |_| set_selected_attack.set("truncatedHeader".to_string())
                     >
                         "✂️ Truncated Header"
@@ -630,6 +664,8 @@ pub fn App() -> impl IntoView {
                     <button 
                         class="attack-btn"
                         class:selected=move || selected_attack.get() == "randomGarbage"
+                        class:running=move || selected_attack.get() == "randomGarbage" && is_running.get()
+                        disabled=is_running
                         on:click=move |_| set_selected_attack.set("randomGarbage".to_string())
                     >
                         "🗑️ Random Garbage"
@@ -638,6 +674,9 @@ pub fn App() -> impl IntoView {
                 <div class="chaos-actions">
                     <button class="chaos-button" disabled=is_running on:click=move |_| trigger_attack(())>
                         {move || if is_running.get() { "⏳..." } else { "🎯 Attack" }}
+                    </button>
+                    <button class="runall-button" disabled=is_running on:click=move |_| run_all_attacks(())>
+                        {move || if is_running.get() { "⏳ Running..." } else { "🔥 Run All" }}
                     </button>
                     <button class="reset-button" on:click=move |_| reset_demo(())>"🔄 Reset"</button>
                 </div>

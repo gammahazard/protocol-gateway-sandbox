@@ -550,6 +550,31 @@ body {
   border-color: var(--accent-orange);
 }
 
+.attack-btn.running {
+  animation: attack-pulse 0.8s ease-in-out infinite;
+  border-color: var(--accent-green);
+  color: var(--accent-green);
+}
+
+@keyframes attack-pulse {
+
+  0%,
+  100% {
+    background: rgba(46, 204, 113, 0.1);
+    box-shadow: 0 0 5px rgba(46, 204, 113, 0.3);
+  }
+
+  50% {
+    background: rgba(46, 204, 113, 0.3);
+    box-shadow: 0 0 15px rgba(46, 204, 113, 0.6);
+  }
+}
+
+.attack-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
 .chaos-actions {
   display: flex;
   gap: 0.5rem;
@@ -613,6 +638,28 @@ body {
 
 .reset-button:hover {
   background: var(--bg-hover);
+}
+
+.runall-button {
+  flex: 1;
+  padding: 0.5rem 1rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: transform 0.2s;
+  background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+  color: white;
+}
+
+.runall-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+}
+
+.runall-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* ============================================================================
@@ -833,7 +880,8 @@ body {
   }
 
   .chaos-button,
-  .reset-button {
+  .reset-button,
+  .runall-button {
     width: 100%;
   }
 }
