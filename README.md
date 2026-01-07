@@ -290,6 +290,8 @@ We apply SIL 3 safety patterns (IEC 61508) at the software layer:
 - 2oo3 detects crashes **AND wrong results** (Byzantine faults)
 - SIL 3 safety systems (Triconex, HIMA) use 2oo3 for emergency shutdown
 
+> ⚠️ **Note:** This project demonstrates SIL 3 voting *patterns*, not a certified SIL 3 implementation. Formal compliance requires third-party assessment per IEC 61508.
+
 ### Why WASM 2oo3 Beats Traditional Industrial Solutions
 
 | Solution | Fault Detection | Rebuild Time | Memory |

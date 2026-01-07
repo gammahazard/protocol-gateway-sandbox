@@ -331,8 +331,17 @@ pub fn App() -> impl IntoView {
                 });
             });
             
-            // continue processing with 2/3 instances
-            for delay in [800u64, 1500, 2200] {
+            // continue processing - first 2/3 while rebuilding, then 3/3 after recovery
+            set_timeout(move || {
+                set_wasm_logs.update(|logs| {
+                    logs.push(LogEntry { level: "info".into(), message: "[RECV] Frame: Read Holding Registers".into() });
+                    logs.push(LogEntry { level: "success".into(), message: "[VOTE] 2/3 agree (1 rebuilding) → MQTT published".into() });
+                });
+                set_wasm_processed.update(|n| *n += 1);
+            }, std::time::Duration::from_millis(500));
+            
+            // after rebuild completes (~7ms), we're back to 3/3
+            for delay in [1500u64, 2200] {
                 set_timeout(move || {
                     set_wasm_logs.update(|logs| {
                         logs.push(LogEntry { level: "info".into(), message: "[RECV] Frame: Read Holding Registers".into() });
