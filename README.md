@@ -131,6 +131,57 @@ The dashboard shows **two live terminals side-by-side** with **real WASM measure
 - **Python:** 500ms downtime, frames lost during crash
 - **WASM:** 0ms downtime, 2/3 voting continues, instance rebuilt in ~7ms (real)
 
+<details>
+<summary>📸 Click to see all attack scenarios + CLI benchmark</summary>
+
+#### Illegal Function Code
+<p align="center">
+  <img src="docs/assets/attack_illegal_function.png" alt="Illegal Function Code Attack" width="800"/>
+</p>
+
+#### Truncated Header  
+<p align="center">
+  <img src="docs/assets/attack_truncated_header.png" alt="Truncated Header Attack" width="800"/>
+</p>
+
+#### Random Garbage
+<p align="center">
+  <img src="docs/assets/attack_random_garbage.png" alt="Random Garbage Attack" width="800"/>
+</p>
+
+#### CLI Benchmark (Node.js)
+```
+$ node cli/run.mjs
+
+╔════════════════════════════════════════════════════════════╗
+║         PROTOCOL GATEWAY SANDBOX - CLI BENCHMARK            ║
+╚════════════════════════════════════════════════════════════╝
+
+[OK] Real WASM component size: 64.54 KB
+[COMPILE] Module compiled in: 0.62 ms
+[INSTANCE 0] Created in: 0.044 ms
+[INSTANCE 1] Created in: 0.014 ms
+[INSTANCE 2] Created in: 0.013 ms
+
+[FAULT] Instance 1 marked as faulty
+[REBUILD] New instance created in: 0.013 ms
+[OK] 2oo3 pool restored - voting can continue
+
+┌─────────────────────┬──────────────────┬────────────────────┐
+│ Metric              │ WASM (measured)  │ Python (benchmark) │
+├─────────────────────┼──────────────────┼────────────────────┤
+│ Component Size      │       65 KB      │      ~30-50 MB     │
+│ Compile Time        │     0.62 ms      │      ~500 ms       │
+│ Instance Create     │    0.024 ms      │      ~500 ms       │
+│ Fault Rebuild       │    0.013 ms      │      ~500 ms       │
+└─────────────────────┴──────────────────┴────────────────────┘
+
+✓ These are REAL measurements from Node.js
+✓ Same WASM component runs in browser, Node.js, and edge devices
+```
+
+</details>
+
 ### Real vs Simulated Metrics
 
 | Metric | Source |
