@@ -123,21 +123,29 @@ async fn measure_compile_time() -> f64 {
 }
 
 /// measure real wasm instantiate time using webassembly.instantiate()
+/// runs multiple iterations and averages for more accurate sub-millisecond timing
 async fn measure_instantiate_time() -> f64 {
-    // first compile
+    // compile once
     let array = js_sys::Uint8Array::from(MINIMAL_WASM);
     let compile_promise = js_sys::WebAssembly::compile(&array.buffer());
-    let module = wasm_bindgen_futures::JsFuture::from(compile_promise).await.unwrap();
+    let module: js_sys::WebAssembly::Module = wasm_bindgen_futures::JsFuture::from(compile_promise)
+        .await
+        .unwrap()
+        .unchecked_into();
     
-    // now measure instantiate
+    // run 5 instantiations and take the average
+    let iterations = 5;
     let start = now();
-    let instantiate_promise = js_sys::WebAssembly::instantiate_module(
-        &module.unchecked_into(),
-        &js_sys::Object::new()
-    );
-    let _ = wasm_bindgen_futures::JsFuture::from(instantiate_promise).await;
     
-    now() - start
+    for _ in 0..iterations {
+        let instantiate_promise = js_sys::WebAssembly::instantiate_module(
+            &module,
+            &js_sys::Object::new()
+        );
+        let _ = wasm_bindgen_futures::JsFuture::from(instantiate_promise).await;
+    }
+    
+    (now() - start) / iterations as f64
 }
 
 // ============================================================================
