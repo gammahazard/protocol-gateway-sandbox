@@ -121,8 +121,10 @@ The dashboard shows **two live terminals side-by-side** with **real WASM measure
 | ~500ms worker spawn (simulated) | **~4ms instantiate (real)** |
 | No fault isolation | Faulty instance identified |
 
-### Attack Demo: Buffer Overflow
+<details>
+<summary><b>📸 View Attack Demo Screenshots + CLI Benchmark</b></summary>
 
+### Buffer Overflow
 <p align="center">
   <img src="docs/assets/attack_buffer_overflow.png" alt="Buffer Overflow Attack Demo" width="800"/>
 </p>
@@ -131,25 +133,30 @@ The dashboard shows **two live terminals side-by-side** with **real WASM measure
 - **Python:** 500ms downtime, frames lost during crash
 - **WASM:** 0ms downtime, 2/3 voting continues, instance rebuilt in ~7ms (real)
 
-<details>
-<summary>📸 Click to see all attack scenarios + CLI benchmark</summary>
+---
 
-#### Illegal Function Code
+### Illegal Function Code
 <p align="center">
   <img src="docs/assets/attack_illegal_function.png" alt="Illegal Function Code Attack" width="800"/>
 </p>
 
-#### Truncated Header  
+---
+
+### Truncated Header  
 <p align="center">
   <img src="docs/assets/attack_truncated_header.png" alt="Truncated Header Attack" width="800"/>
 </p>
 
-#### Random Garbage
+---
+
+### Random Garbage
 <p align="center">
   <img src="docs/assets/attack_random_garbage.png" alt="Random Garbage Attack" width="800"/>
 </p>
 
-#### CLI Benchmark (Node.js)
+---
+
+### CLI Benchmark (Node.js)
 ```
 $ node cli/run.mjs
 
