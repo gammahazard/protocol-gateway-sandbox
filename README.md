@@ -14,7 +14,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/status-completed-brightgreen" alt="Status"/>
-  <img src="https://img.shields.io/badge/tests-13%20passing-brightgreen" alt="Tests"/>
+  <img src="https://img.shields.io/badge/tests-17%20passing-brightgreen" alt="Tests"/>
   <a href="https://protocol-gateway-sandbox.vercel.app"><img src="https://img.shields.io/badge/demo-live-blue" alt="Demo"/></a>
   <img src="https://img.shields.io/badge/license-MIT-blue" alt="License"/>
 </p>
