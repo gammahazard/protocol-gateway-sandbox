@@ -586,13 +586,13 @@ fn simulate_python_restart(
             
             if is_done {
                 set_restarting.set(false);
-                set_workers.set([true, true, false]); // worker 0 respawned
+                set_workers.set([false, true, false]); // worker 0 respawned as standby, worker 1 still active
                 set_logs.update(|logs| {
                     logs.push(LogEntry { 
                         level: "success".into(), 
-                        message: format!("[OK] Worker 3 spawned ({}ms) - pool restored", spawn_ms)
-                    });
+                        message: format!("[OK] Worker 0 respawned ({}ms) - pool restored (W1 active, W0+W2 standby)", spawn_ms)
                 });
+            });
             } else {
                 set_logs.update(|logs| {
                     logs.push(LogEntry { 
