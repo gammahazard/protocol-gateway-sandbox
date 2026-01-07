@@ -122,7 +122,7 @@ The dashboard shows **two live terminals side-by-side** with **real WASM measure
 | No fault isolation | Faulty instance identified |
 
 <details>
-<summary><h3>📸 View Attack Demo Screenshots + CLI Benchmark</h3></summary>
+<summary><h2>📸 View Attack Demo Screenshots + CLI Benchmark</h2></summary>
 
 ### Buffer Overflow
 <p align="center">
