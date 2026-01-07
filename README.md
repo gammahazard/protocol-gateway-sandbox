@@ -203,6 +203,10 @@ $ node cli/run.mjs
 | WASM memory | ✅ Real measurement |
 | Python spawn time | 🔶 Simulated (~500ms based on benchmarks) |
 
+> 💡 **About the Demo:** This project uses mock data sources for portability. In production, the same WASM component would connect to a real PLC (Programmable Logic Controller) at `modbus://plc:502`.
+>
+> **Modbus** is a 1979 industrial protocol — think "HTTP for factory machines." **Port 502** is the standard Modbus TCP port, like `:80` for HTTP. The mock shims (`host/shim/`) simulate this traffic so you can run the demo without industrial hardware.
+
 Run locally:
 ```bash
 # Dashboard (browser demo)
