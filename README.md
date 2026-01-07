@@ -98,6 +98,8 @@ protocol-gateway-sandbox/
 │   │   └── chaos-attacks.js
 │   └── test/
 │       └── fuzz.test.js    # Security invariant tests
+├── cli/                    # Node.js CLI demo
+│   └── run.mjs             # **Real benchmarks outside browser**
 ├── legacy/                 # Python "villain" comparison
 │   └── vulnerable_gateway.py
 ├── dashboard/              # Leptos web UI
@@ -131,8 +133,13 @@ The dashboard shows **two live terminals side-by-side** with **real WASM measure
 
 Run locally:
 ```bash
+# Dashboard (browser demo)
 cd dashboard && trunk serve
 # Open http://localhost:8080
+
+# CLI benchmark (Node.js - proves edge portability)
+node cli/run.mjs
+# Shows real compile/instantiate times
 ```
 
 ## 🚀 Quick Start
