@@ -169,7 +169,7 @@ pub fn App() -> impl IntoView {
     // ========================================================================
     // python multiprocessing state (simulated but realistic)
     // ========================================================================
-    let (python_workers, set_python_workers) = create_signal([true, false, false]); // 1 active, 2 idle
+    let (python_workers, set_python_workers) = create_signal([true, true, true]); // all alive, 1 active + 2 standby
     let (python_active_worker, set_python_active_worker) = create_signal(0u8);
     let (python_restarting, set_python_restarting) = create_signal(false);
     let (python_restart_progress, set_python_restart_progress) = create_signal(0u32);
@@ -245,7 +245,7 @@ pub fn App() -> impl IntoView {
                 logs.push(LogEntry { level: "error".into(), message: format!("[CRASH] {}", config.error_msg) });
                 logs.push(LogEntry { level: "error".into(), message: "💥 Worker 0 died - spawning replacement...".into() });
             });
-            set_python_workers.set([false, true, false]); // worker 0 dead, worker 1 takes over
+            set_python_workers.set([false, true, true]); // worker 0 dead, workers 1+2 alive
             set_python_active_worker.set(1);
             set_python_restarting.set(true);
             set_python_rejected.update(|n| *n += 1);
@@ -370,7 +370,7 @@ pub fn App() -> impl IntoView {
         set_faulty_instance.set(None);
         set_vote_result.set(None);
         set_switchover_count.set(0);
-        set_python_workers.set([true, false, false]);
+        set_python_workers.set([true, true, true]);
         set_python_active_worker.set(0);
         set_python_restarting.set(false);
     };
@@ -586,7 +586,7 @@ fn simulate_python_restart(
             
             if is_done {
                 set_restarting.set(false);
-                set_workers.set([false, true, false]); // worker 0 respawned as standby, worker 1 still active
+                set_workers.set([true, true, true]); // worker 0 respawned - all workers alive again
                 set_logs.update(|logs| {
                     logs.push(LogEntry { 
                         level: "success".into(), 
