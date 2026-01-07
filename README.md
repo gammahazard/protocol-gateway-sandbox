@@ -29,7 +29,7 @@
 
 **Without WASM:** A buffer overflow in the Modbus parser crashes/owns the gateway, potentially reaching the PLC.
 
-**With WASM:** A buffer overflow in the Modbus parser crashes the WASM instance. The host restarts it in **<10ms**. The PLC never sees the attack.
+**With WASM:** A buffer overflow in the Modbus parser crashes the WASM instance. The host rebuilds it in **~7ms** (measured). The PLC never sees the attack.
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────────┐
@@ -253,8 +253,8 @@ cd legacy && python vulnerable_gateway.py
 
 **Terminal 2 (WASM - survives):**
 ```bash
-cd host && node runtime.js
-# Sends malformed packet → ⚡ WASM traps → 🟢 Restarts in 8ms
+cd host && npm run demo
+# Sends malformed packet → ⚡ WASM traps → 🟢 Rebuilds in ~7ms
 ```
 
 ## 📊 Key Metrics
