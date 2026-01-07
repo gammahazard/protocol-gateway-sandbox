@@ -6,7 +6,7 @@
 
 | Attack Vector | Traditional Gateway | WASM Gateway |
 |--------------|---------------------|--------------|
-| **Buffer Overflow** | Process crash or RCE | Sandbox trap, 8ms restart |
+| **Buffer Overflow** | Process crash or RCE | Sandbox trap, ~7ms rebuild |
 | **Integer Overflow** | Undefined behavior | Rust panics, sandbox trap |
 | **Format String** | Memory disclosure | Not possible (no printf) |
 | **Heap Corruption** | Arbitrary write | Linear memory isolated |
@@ -127,7 +127,7 @@ All write operations rejected. This is a **read-only data conduit**.
 
 | Metric | Cold Restart | 2oo3 TMR |
 |--------|--------------|----------|
-| Recovery time | ~8ms | **~0ms (2/3 still voting)** |
+| Recovery time | ~7ms | **~0ms (2/3 still voting)** |
 | Host crash rate | 0% | 0% |
 | Memory leak on crash | 0 bytes | 0 bytes |
 | Packets lost (1000/sec) | 1-2 | **0** |
