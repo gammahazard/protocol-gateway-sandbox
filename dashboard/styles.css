@@ -517,6 +517,44 @@ body {
   border-color: rgba(255, 102, 0, 0.2);
 }
 
+/* attack button grid */
+.attack-buttons {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.attack-btn {
+  padding: 0.6rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  border: 1px solid var(--bg-hover);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.attack-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: var(--accent-orange);
+}
+
+.attack-btn.selected {
+  background: rgba(255, 102, 0, 0.15);
+  color: var(--accent-orange);
+  border-color: var(--accent-orange);
+}
+
+.chaos-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
 .chaos-controls {
   display: flex;
   gap: 0.5rem;
@@ -779,6 +817,19 @@ body {
 
   .attack-select {
     min-width: 100%;
+  }
+
+  .attack-buttons {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .attack-btn {
+    font-size: 0.65rem;
+    padding: 0.5rem 0.3rem;
+  }
+
+  .chaos-actions {
+    flex-direction: column;
   }
 
   .chaos-button,

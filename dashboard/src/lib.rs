@@ -605,13 +605,37 @@ pub fn App() -> impl IntoView {
             // attack controls
             <div class="panel chaos-panel">
                 <h2>"☠️ Attack Vector"</h2>
-                <div class="chaos-controls">
-                    <select class="attack-select" on:change=move |ev| set_selected_attack.set(event_target_value(&ev))>
-                        <option value="bufferOverflow">"Buffer Overflow"</option>
-                        <option value="illegalFunction">"Illegal Function Code"</option>
-                        <option value="truncatedHeader">"Truncated Header"</option>
-                        <option value="randomGarbage">"Random Garbage"</option>
-                    </select>
+                <div class="attack-buttons">
+                    <button 
+                        class="attack-btn"
+                        class:selected=move || selected_attack.get() == "bufferOverflow"
+                        on:click=move |_| set_selected_attack.set("bufferOverflow".to_string())
+                    >
+                        "💥 Buffer Overflow"
+                    </button>
+                    <button 
+                        class="attack-btn"
+                        class:selected=move || selected_attack.get() == "illegalFunction"
+                        on:click=move |_| set_selected_attack.set("illegalFunction".to_string())
+                    >
+                        "🚫 Illegal Function"
+                    </button>
+                    <button 
+                        class="attack-btn"
+                        class:selected=move || selected_attack.get() == "truncatedHeader"
+                        on:click=move |_| set_selected_attack.set("truncatedHeader".to_string())
+                    >
+                        "✂️ Truncated Header"
+                    </button>
+                    <button 
+                        class="attack-btn"
+                        class:selected=move || selected_attack.get() == "randomGarbage"
+                        on:click=move |_| set_selected_attack.set("randomGarbage".to_string())
+                    >
+                        "🗑️ Random Garbage"
+                    </button>
+                </div>
+                <div class="chaos-actions">
                     <button class="chaos-button" disabled=is_running on:click=move |_| trigger_attack(())>
                         {move || if is_running.get() { "⏳..." } else { "🎯 Attack" }}
                     </button>
