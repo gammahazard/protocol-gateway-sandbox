@@ -125,22 +125,22 @@ All write operations rejected. This is a **read-only data conduit**.
 
 ## Crash Recovery Metrics
 
-| Metric | Cold Restart | Hot-Standby |
-|--------|--------------|-------------|
-| Recovery time | ~8ms | **~100μs** |
+| Metric | Cold Restart | 2oo3 TMR |
+|--------|--------------|----------|
+| Recovery time | ~8ms | **~0ms (2/3 still voting)** |
 | Host crash rate | 0% | 0% |
 | Memory leak on crash | 0 bytes | 0 bytes |
 | Packets lost (1000/sec) | 1-2 | **0** |
 
-### Hot-Standby Redundancy
+### 2oo3 Triple Modular Redundancy
 
-The host runtime maintains two WASM instances. On crash:
+The host runtime maintains three WASM instances with voting. On fault:
 
-1. **Instant switchover** (~100μs) - just change the active index
-2. **Async rebuild** - failed instance rebuilds in background
-3. **Zero packet loss** - standby is already warm
+1. **Zero switchover delay** - 2/3 instances still voting, result is valid
+2. **Async rebuild** - faulty instance rebuilds in background (~7ms)
+3. **Zero packet loss** - majority voting continues during rebuild
 
-This mirrors industrial redundancy patterns (IEC 62439-3) at software level.
+This implements SIL 3 voting patterns (IEC 61508) at the software layer.
 
 ## What Each Technology Solves (And Doesn't)
 
@@ -179,15 +179,15 @@ Understanding the **boundaries** of each technology is critical for defense-in-d
 
 *Example: WASI prevents the parser from opening `/etc/passwd`. It doesn't encrypt the Modbus traffic.*
 
-### Hot-Standby Redundancy
+### 2oo3 TMR Redundancy
 
 | ✅ Solves | ❌ Doesn't Solve |
 |-----------|-----------------|
-| Software fault recovery (~100μs) | Network path failure |
+| Software fault recovery (~0ms) | Network path failure |
 | Parser crash containment | Hardware failure |
 | Zero packet loss on trap | Power failure |
 
-*Example: Hot-standby recovers from a WASM trap instantly. If the NIC dies, hot-standby can't help.*
+*Example: 2oo3 voting continues with 2/3 instances. If the NIC dies, redundancy can't help.*
 
 ## Complementary Technologies Still Needed
 
