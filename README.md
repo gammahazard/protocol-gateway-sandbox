@@ -19,6 +19,10 @@
   <img src="https://img.shields.io/badge/license-MIT-blue" alt="License"/>
 </p>
 
+<p align="center">
+  <img src="docs/assets/dashboard-overview.png" alt="Protocol Gateway Sandbox Dashboard" width="700"/>
+</p>
+
 ---
 
 ## 🎯 The Security Thesis
