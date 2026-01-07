@@ -119,11 +119,17 @@ protocol-gateway-sandbox/
 The dashboard shows **two live terminals side-by-side** with **real WASM measurements**:
 
 | Python (Multiprocessing) | WASM (2oo3 Voting) |
-|--------------------------|--------------------|
+|--------------------------|---------------------|
 | 3 workers: 1 active, 2 idle | 3 instances: all voting |
 | Crash detection only | **Fault detection via voting** |
 | ~500ms worker spawn (simulated) | **~4ms instantiate (real)** |
 | No fault isolation | Faulty instance identified |
+
+### Interactive Attack Testing
+
+- **4 attack buttons** - Buffer Overflow, Illegal Function, Truncated Header, Random Garbage
+- **Run All** - Executes all 4 attacks sequentially with visual progress (green flashing)
+- **Real-time metrics** - Compile time, instantiate time, memory usage (all measured)
 
 <details>
 <summary><h2>📸 View Attack Demo Screenshots + CLI Benchmark</h2></summary>
