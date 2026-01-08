@@ -385,6 +385,8 @@ For remote deployments with limited connectivity (offshore rigs, remote substati
 
 ## 🍓 Hardware Demo (Coming Soon)
 
+> 📖 **[View Full Hardware Setup Guide](docs/hardware-setup.md)** — Wiring diagrams, project structure, and implementation details
+
 The same `.wasm` binary will run on real industrial hardware with actual Modbus communication:
 
 | Hardware | Protocol | What It Proves |
