@@ -25,6 +25,19 @@
 
 ---
 
+## 📑 Contents
+
+- [The Security Thesis](#-the-security-thesis) — What problem this solves
+- [Architecture](#️-architecture) — How it's built
+- [Dashboard Demo](#️-dashboard-demo) — Interactive attack testing
+- [Quick Start](#-quick-start) — Run it locally
+- [Key Metrics](#-key-metrics) — Python vs WASM comparison
+- [2oo3 TMR](#2oo3-triple-modular-redundancy-tmr) — Fault tolerance voting
+- [Deployment Targets](#-deployment-targets) — Browser → Pi → Cloud
+- [Hardware Demo](#-hardware-demo-coming-soon) — Raspberry Pi coming soon
+
+---
+
 ## 🎯 The Security Thesis
 
 **Without WASM:** A buffer overflow in the Modbus parser crashes/owns the gateway, potentially reaching the PLC.
@@ -61,6 +74,8 @@
 | **Host Runtime** | JavaScript (Node.js) | WASM loader with 2oo3 TMR voting (SIL 3 pattern) |
 | **Mock Sources** | JS Shims | Simulated PLC and MQTT broker |
 | **Dashboard** | Leptos → WASM | Real-time security console with real WASM measurements |
+
+> 🔗 **See also:** [Vanguard ICS Guardian](https://github.com/gammahazard/vanguard-ics-guardian) — Companion project demonstrating capability-based sandboxing and data diode security.
 
 ### IEC 62443 Alignment
 
@@ -364,6 +379,28 @@ For remote deployments with limited connectivity (offshore rigs, remote substati
 | Docker (ML stack) | ~2 GB | ~4.5 hours |
 
 *This is why WASM matters for remote ICS environments.*
+
+## 🍓 Hardware Demo (Coming Soon)
+
+The same `.wasm` binary will run on real industrial hardware with actual Modbus communication:
+
+| Hardware | Protocol | What It Proves |
+|----------|----------|----------------|
+| **Raspberry Pi 4 + USB-RS485** | Modbus RTU on wire | Same WASM, real protocol, real 2oo3 voting |
+
+This works because the project follows the **WASI 0.2 Component Model** — a W3C standard that defines how WASM modules interact with the outside world through capability-based interfaces. The guest component only knows about abstract interfaces (`modbus-source`, `mqtt-sink`), not whether it's running in a browser or on a Pi.
+
+**What stays the same:**
+- `guest.wasm` — identical Modbus parser, zero changes
+- WIT interface — same `modbus-source`, `mqtt-sink` contracts
+- 2oo3 voting logic — same fault detection and recovery
+
+**What we'll build:**
+- **Rust host** replacing JavaScript shims with real serial I/O via `serialport`
+- `modbus-source` implementation reads from USB-RS485 instead of mock frames
+- RGB OLED display shows live parser status and fault recovery times
+
+> 🎬 Demo video coming soon — inject malformed Modbus frames on real RS485, watch WASM trap and recover in milliseconds.
 
 ## 📚 Documentation
 
