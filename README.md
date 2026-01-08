@@ -2,7 +2,10 @@
   <img src="https://img.shields.io/badge/WASI-0.2%20Preview%202-blueviolet?style=for-the-badge&logo=webassembly" alt="WASI 0.2"/>
   <img src="https://img.shields.io/badge/Rust-1.75+-orange?style=for-the-badge&logo=rust" alt="Rust"/>
   <img src="https://img.shields.io/badge/Modbus-TCP-blue?style=for-the-badge" alt="Modbus TCP"/>
-  <img src="https://img.shields.io/badge/Arch-Cross--Platform_(ARM64%2Fx64)-lightgrey?style=for-the-badge&logo=cpu" alt="Cross Platform"/>
+  <img src="https://img.shields.io/badge/Wasmtime-Compatible-green?style=for-the-badge&logo=webassembly" alt="Wasmtime"/>
+  <img src="https://img.shields.io/badge/IEC%2062443-Aligned-blue?style=for-the-badge" alt="IEC 62443"/>
+  <img src="https://img.shields.io/badge/WASM%20Size-68%20KB-success?style=for-the-badge" alt="Binary Size"/>
+  <img src="https://img.shields.io/badge/Raspberry%20Pi-Coming%20Soon-ff69b4?style=for-the-badge&logo=raspberrypi" alt="Pi Ready"/>
 </p>
 
 <h1 align="center">🔒 Protocol Gateway Sandbox</h1>
