@@ -407,6 +407,19 @@ This works because the project follows the **WASI 0.2 Component Model** — a W3
 
 > 🎬 Demo video coming soon — inject malformed Modbus frames on real RS485, watch WASM trap and recover in milliseconds.
 
+## 🔗 Related Projects
+
+This project is part of the **Reliability Triad** — a portfolio demonstrating WASI 0.2 Component Model across security, protocol translation, and distributed consensus:
+
+| Project | Focus | Demo |
+|---------|-------|------|
+| [Vanguard ICS Guardian](https://github.com/gammahazard/vanguard-ics-guardian) | Capability-based sandboxing | [Live Demo](https://vanguard-ics-guardian.vercel.app) |
+| **Protocol Gateway Sandbox** (this) | Modbus/MQTT translation | [Live Demo](https://protocol-gateway-sandbox.vercel.app) |
+| [Raft Consensus Cluster](https://github.com/gammahazard/Raft-Consensus) | Distributed consensus | [Live Demo](https://raft-consensus.vercel.app) |
+| [Guardian-One](https://github.com/gammahazard/guardian-one) | **Hardware implementation** | *Private - in development* |
+
+> **Guardian-One** is the hardware implementation of these concepts — a Rust/Wasmtime host running on Raspberry Pi 4 with BME280 sensors, SainSmart relays, and a 3-node Raft cluster for fault tolerance. Hardware demo coming soon.
+
 ## 📚 Documentation
 
 - [**Architecture Deep Dive**](docs/ARCHITECTURE.md): 2oo3 TMR voting, "Compile-Once, Instantiate-Many"
