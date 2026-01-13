@@ -416,9 +416,9 @@ This project is part of the **Reliability Triad** — a portfolio demonstrating 
 | [Vanguard ICS Guardian](https://github.com/gammahazard/vanguard-ics-guardian) | Capability-based sandboxing | [Live Demo](https://vanguard-ics-guardian.vercel.app) |
 | **Protocol Gateway Sandbox** (this) | Modbus/MQTT translation | [Live Demo](https://protocol-gateway-sandbox.vercel.app) |
 | [Raft Consensus Cluster](https://github.com/gammahazard/Raft-Consensus) | Distributed consensus | [Live Demo](https://raft-consensus.vercel.app) |
-| [Guardian-One](https://github.com/gammahazard/guardian-one) | **Hardware implementation** | *Private - in development* |
+| [Guardian-One](https://github.com/gammahazard/guardian-one) | **Hardware implementation** | Raspberry Pi + real sensors |
 
-> **Guardian-One** is the hardware implementation of these concepts — a Rust/Wasmtime host running on Raspberry Pi 4 with BME280 sensors, SainSmart relays, and a 3-node Raft cluster for fault tolerance. Hardware demo coming soon.
+> **Guardian-One** is the hardware implementation of these concepts — a Rust/Wasmtime host running on Raspberry Pi 4 with BME280 sensors, SainSmart relays, and a 3-node Raft cluster for fault tolerance.
 
 ## 📚 Documentation
 
